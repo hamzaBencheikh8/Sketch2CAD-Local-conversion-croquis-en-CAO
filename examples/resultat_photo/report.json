@@ -1,0 +1,53 @@
+{
+  "status": "OK",
+  "profile": "offline",
+  "graph_method": "heuristic",
+  "vertices": 6,
+  "holes": 2,
+  "thickness_mm": 5.0,
+  "dof_remaining": 0,
+  "max_residual_mm": 0.0,
+  "conflicts": [],
+  "relaxed_implicit": [],
+  "warnings": [],
+  "critic": [
+    {
+      "iteration": 1,
+      "iou": 0.393,
+      "issues": [
+        "V4 : dessiné rentrant, résolu convexe -> angle 120° inversé.",
+        "V5 : convexité différente du dessin (cote voisine suspecte).",
+        "Forme résolue éloignée du dessin (IoU 0.39 < 0.6).",
+        "C2 (Ø12) déborde du contour ou paroi < 1 mm."
+      ],
+      "conflicts": []
+    },
+    {
+      "iteration": 2,
+      "iou": 0.9,
+      "issues": [],
+      "conflicts": []
+    }
+  ],
+  "vlm_critic": null,
+  "cad_ok": true,
+  "solid": {
+    "volume": "53896.393",
+    "valid": "True",
+    "bbox": "150.000x84.641x5.000"
+  },
+  "files": [
+    "cad_report.json",
+    "comparison.png",
+    "graph.json",
+    "part.dxf",
+    "part.py",
+    "part.step",
+    "part.stl",
+    "part.svg",
+    "perception.json",
+    "rectified.png",
+    "solution.json",
+    "som.png"
+  ]
+}

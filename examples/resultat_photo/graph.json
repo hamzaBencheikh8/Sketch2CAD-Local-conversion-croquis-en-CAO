@@ -1,0 +1,259 @@
+{
+  "vertices": [
+    {
+      "id": "V1",
+      "px": [
+        324.0,
+        911.0
+      ]
+    },
+    {
+      "id": "V2",
+      "px": [
+        991.0,
+        904.0
+      ]
+    },
+    {
+      "id": "V3",
+      "px": [
+        1004.0,
+        582.0
+      ]
+    },
+    {
+      "id": "V4",
+      "px": [
+        756.0,
+        583.0
+      ]
+    },
+    {
+      "id": "V5",
+      "px": [
+        646.0,
+        410.0
+      ]
+    },
+    {
+      "id": "V6",
+      "px": [
+        322.0,
+        416.0
+      ]
+    }
+  ],
+  "edges": [
+    {
+      "id": "E1",
+      "from": "V1",
+      "to": "V2"
+    },
+    {
+      "id": "E2",
+      "from": "V2",
+      "to": "V3"
+    },
+    {
+      "id": "E3",
+      "from": "V3",
+      "to": "V4"
+    },
+    {
+      "id": "E4",
+      "from": "V4",
+      "to": "V5"
+    },
+    {
+      "id": "E5",
+      "from": "V5",
+      "to": "V6"
+    },
+    {
+      "id": "E6",
+      "from": "V6",
+      "to": "V1"
+    }
+  ],
+  "circles": [
+    {
+      "id": "C1",
+      "px": [
+        894.2057495117188,
+        702.2442016601562
+      ],
+      "r_px": 25.803313850397107
+    },
+    {
+      "id": "C2",
+      "px": [
+        543.5,
+        772.58642578125
+      ],
+      "r_px": 41.64251801072175
+    }
+  ],
+  "constraints": [
+    {
+      "type": "length",
+      "value": 40.0,
+      "edge": "E3",
+      "edges": null,
+      "vertex": null,
+      "circle": null,
+      "target": null,
+      "implicit": false,
+      "source": "T1",
+      "note": null
+    },
+    {
+      "type": "length",
+      "value": 40.0,
+      "edge": "E4",
+      "edges": null,
+      "vertex": null,
+      "circle": null,
+      "target": null,
+      "implicit": false,
+      "source": "T2",
+      "note": null
+    },
+    {
+      "type": "angle",
+      "value": 240.0,
+      "edge": null,
+      "edges": null,
+      "vertex": "V4",
+      "circle": null,
+      "target": null,
+      "implicit": false,
+      "source": "T3",
+      "note": "sens corrigé par l'agent critique"
+    },
+    {
+      "type": "length",
+      "value": 50.0,
+      "edge": "E2",
+      "edges": null,
+      "vertex": null,
+      "circle": null,
+      "target": null,
+      "implicit": false,
+      "source": "T4",
+      "note": null
+    },
+    {
+      "type": "diameter",
+      "value": 8.0,
+      "edge": null,
+      "edges": null,
+      "vertex": null,
+      "circle": "C1",
+      "target": null,
+      "implicit": false,
+      "source": "T5",
+      "note": null
+    },
+    {
+      "type": "diameter",
+      "value": 12.0,
+      "edge": null,
+      "edges": null,
+      "vertex": null,
+      "circle": "C2",
+      "target": null,
+      "implicit": false,
+      "source": "T6",
+      "note": null
+    },
+    {
+      "type": "fillet",
+      "value": 10.0,
+      "edge": null,
+      "edges": null,
+      "vertex": "V2",
+      "circle": null,
+      "target": null,
+      "implicit": false,
+      "source": "T7",
+      "note": null
+    },
+    {
+      "type": "length",
+      "value": 150.0,
+      "edge": "E1",
+      "edges": null,
+      "vertex": null,
+      "circle": null,
+      "target": null,
+      "implicit": false,
+      "source": "T8",
+      "note": null
+    },
+    {
+      "type": "horizontal",
+      "value": null,
+      "edge": "E1",
+      "edges": null,
+      "vertex": null,
+      "circle": null,
+      "target": null,
+      "implicit": true,
+      "source": null,
+      "note": null
+    },
+    {
+      "type": "vertical",
+      "value": null,
+      "edge": "E2",
+      "edges": null,
+      "vertex": null,
+      "circle": null,
+      "target": null,
+      "implicit": true,
+      "source": null,
+      "note": null
+    },
+    {
+      "type": "horizontal",
+      "value": null,
+      "edge": "E3",
+      "edges": null,
+      "vertex": null,
+      "circle": null,
+      "target": null,
+      "implicit": true,
+      "source": null,
+      "note": null
+    },
+    {
+      "type": "horizontal",
+      "value": null,
+      "edge": "E5",
+      "edges": null,
+      "vertex": null,
+      "circle": null,
+      "target": null,
+      "implicit": true,
+      "source": null,
+      "note": null
+    },
+    {
+      "type": "vertical",
+      "value": null,
+      "edge": "E6",
+      "edges": null,
+      "vertex": null,
+      "circle": null,
+      "target": null,
+      "implicit": true,
+      "source": null,
+      "note": null
+    }
+  ],
+  "thickness": 5.0,
+  "units": "mm",
+  "unassigned": [],
+  "warnings": [],
+  "method": "heuristic"
+}

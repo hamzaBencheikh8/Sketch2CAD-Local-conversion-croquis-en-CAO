@@ -1,0 +1,11 @@
+{
+  "script": "/home/claude/sketch2cad_local/examples/resultat_photo/part.py",
+  "ok": true,
+  "log": "OK volume=53896.393 valid=True bbox=150.000x84.641x5.000",
+  "llm_attempts": 0,
+  "solid": {
+    "volume": "53896.393",
+    "valid": "True",
+    "bbox": "150.000x84.641x5.000"
+  }
+}

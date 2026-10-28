@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Sketch2CAD-Local</title>
+<style>
+:root{
+  --bg:#f4f3ee; --panel:#fffefb; --ink:#1b2430; --muted:#5f6b78; --line:#d9d6cc; --grid:#e8e5db;
+  --accent:#1f5fbf; --accent-ink:#ffffff; --accent-soft:#e3ecfa;
+  --ok:#1d7a46; --ok-soft:#e1f2e8; --warn:#9a6200; --warn-soft:#fbf0d9; --bad:#b3261e; --bad-soft:#fbe4e2;
+  --mono:ui-monospace,"Cascadia Mono","Consolas","SFMono-Regular",monospace;
+  --sans:"Segoe UI",system-ui,-apple-system,sans-serif;
+}
+@media (prefers-color-scheme: dark){:root{
+  --bg:#12161c; --panel:#1a2029; --ink:#e6e9ee; --muted:#9aa5b1; --line:#2c3440; --grid:#1f262f;
+  --accent:#6aa0ff; --accent-ink:#0b1424; --accent-soft:#1d2b44;
+  --ok:#5fd18f; --ok-soft:#15301f; --warn:#f0b54a; --warn-soft:#33270f; --bad:#ff8a80; --bad-soft:#3a1a18;
+}}
+*{box-sizing:border-box}
+[hidden]{display:none!important}
+body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 var(--sans);
+  background-image:linear-gradient(var(--grid) 1px,transparent 1px),linear-gradient(90deg,var(--grid) 1px,transparent 1px);
+  background-size:24px 24px}
+header{display:flex;flex-wrap:wrap;align-items:baseline;gap:6px 14px;padding:14px 24px;border-bottom:1px solid var(--line);background:var(--panel)}
+header h1{font-size:17px;margin:0;letter-spacing:.2px}
+header .tag{font:12px var(--mono);color:var(--muted)}
+header .local{margin-left:auto;font:12px var(--mono);color:var(--ok)}
+main{display:grid;grid-template-columns:340px minmax(0,1fr);gap:20px;padding:20px 24px;max-width:1500px;margin:0 auto}
+@media (max-width:900px){main{grid-template-columns:minmax(0,1fr);padding:16px}header{padding:12px 16px}header .local{margin-left:0}#v3d{height:340px}}
+.status{flex-wrap:wrap}
+.card{background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:16px}
+.card h2{font-size:13px;text-transform:uppercase;letter-spacing:.08em;color:var(--muted);margin:0 0 12px}
+.drop{border:1.5px dashed var(--line);border-radius:8px;padding:18px;text-align:center;cursor:pointer;transition:.15s;
+  display:flex;flex-direction:column;align-items:center;gap:8px;min-height:150px;justify-content:center}
+.drop:hover,.drop.over{border-color:var(--accent);background:var(--accent-soft)}
+.drop img{max-width:100%;max-height:180px;border-radius:4px}
+.drop small{color:var(--muted)}
+label.f{display:block;font-size:12px;color:var(--muted);margin:12px 0 4px}
+select,input[type=number]{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink);font:inherit}
+.btn{display:inline-flex;align-items:center;justify-content:center;gap:8px;border:1px solid var(--accent);background:var(--accent);color:var(--accent-ink);
+  border-radius:7px;padding:9px 14px;font:600 14px var(--sans);cursor:pointer}
+.btn.ghost{background:transparent;color:var(--accent)}
+.btn:disabled{opacity:.5;cursor:default}
+.row{display:flex;gap:8px;margin-top:14px}.row .btn{flex:1}
+.hint{font-size:12px;color:var(--muted);margin-top:10px}
+.hist{list-style:none;margin:0;padding:0;max-height:300px;overflow:auto}
+.hist li{display:flex;justify-content:space-between;gap:8px;padding:7px 8px;border-radius:6px;cursor:pointer;font-size:13px}
+.hist li:hover,.hist li.sel{background:var(--accent-soft)}
+.hist .t{font:11px var(--mono);color:var(--muted);white-space:nowrap}
+.dot{display:inline-block;width:8px;height:8px;border-radius:50%;margin-right:6px;background:var(--muted)}
+.dot.done{background:var(--ok)}.dot.error{background:var(--bad)}.dot.running,.dot.queued{background:var(--warn)}
+.empty{display:flex;flex-direction:column;align-items:center;justify-content:center;min-height:420px;color:var(--muted);text-align:center;gap:6px}
+.status{display:flex;align-items:center;gap:12px;padding:12px 14px;border-radius:8px;font-weight:600}
+.status.ok{background:var(--ok-soft);color:var(--ok)}.status.warn{background:var(--warn-soft);color:var(--warn)}
+.status.bad{background:var(--bad-soft);color:var(--bad)}.status.run{background:var(--accent-soft);color:var(--accent)}
+.status .sub{font-weight:400;color:var(--muted);margin-left:auto;font:12px var(--mono)}
+.spin{width:16px;height:16px;border:2px solid currentColor;border-right-color:transparent;border-radius:50%;animation:s 0.8s linear infinite}
+@keyframes s{to{transform:rotate(360deg)}}
+.metrics{display:grid;grid-template-columns:repeat(auto-fit,minmax(140px,1fr));gap:1px;background:var(--line);border:1px solid var(--line);border-radius:8px;overflow:hidden;margin:14px 0}
+.metrics div{background:var(--panel);padding:10px 12px}
+.metrics b{display:block;font:600 18px var(--mono)}
+.metrics span{font-size:12px;color:var(--muted)}
+.tabs{display:flex;gap:2px;border-bottom:1px solid var(--line);overflow-x:auto}
+.tabs button{border:0;background:none;color:var(--muted);font:600 13px var(--sans);padding:9px 12px;cursor:pointer;border-bottom:2px solid transparent;white-space:nowrap}
+.tabs button.on{color:var(--ink);border-bottom-color:var(--accent)}
+.pane{display:none;padding-top:14px}.pane.on{display:block}
+.view{background:#fff;border:1px solid var(--line);border-radius:8px;overflow:hidden;display:flex;justify-content:center}
+.view img{max-width:100%;display:block}
+#v3d canvas{display:block;width:100%!important;height:100%!important}
+#v3d{height:480px;overflow:hidden;min-width:0;background:radial-gradient(circle at 50% 35%,#f9fafc,#dfe4ec);border-radius:8px;border:1px solid var(--line);position:relative}
+#v3d .legend{position:absolute;left:10px;bottom:8px;font:11px var(--mono);color:#53606d}
+table{width:100%;border-collapse:collapse;font-size:13px}
+th{text-align:left;font-weight:600;color:var(--muted);font-size:12px;padding:6px 8px;border-bottom:1px solid var(--line)}
+td{padding:6px 8px;border-bottom:1px solid var(--line)}
+td input,td select{width:100%;max-width:180px;padding:5px 7px;font:13px var(--mono)}
+td.c{text-align:center}
+.mono{font-family:var(--mono)}
+.choice{margin-top:14px}
+.choice .btns{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}
+.choice img{max-width:100%;max-height:560px;border:1px solid var(--line);border-radius:8px;display:block}
+.ctx{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:10px;font-size:13px;color:var(--muted)}
+.ctx .btn{padding:4px 10px;font-size:12px}
+.btn.sm{padding:5px 10px;font-size:13px}
+#rep h3{font-size:13px;margin:16px 0 6px}#rep h3:first-child{margin-top:0}
+.issues{margin:0;padding-left:18px}.issues li{margin:4px 0}
+.dl{display:flex;flex-wrap:wrap;gap:8px;margin-top:14px}
+.dl a{font:12px var(--mono);padding:6px 10px;border:1px solid var(--line);border-radius:6px;color:var(--ink);text-decoration:none;background:var(--bg)}
+.dl a.main{border-color:var(--accent);color:var(--accent);font-weight:600}
+.err{color:var(--bad);font-size:13px;margin-top:8px;white-space:pre-wrap}
+</style>
+<script type="importmap">{"imports":{"three":"/static/vendor/three.module.min.js"}}</script>
+</head>
+<body>
+<header>
+  <h1>Sketch2CAD-Local</h1>
+  <span class="tag">croquis coté → DXF · SVG · STEP · STL</span>
+  <span class="local">● 100 % local — 127.0.0.1</span>
+</header>
+<main>
+  <aside>
+    <div class="card">
+      <h2>Nouveau croquis</h2>
+      <div class="drop" id="drop">
+        <img id="preview" hidden alt="">
+        <div id="dropText"><b>Déposez la photo ici</b><br><small>ou cliquez pour choisir (JPG, PNG)</small></div>
+      </div>
+      <input type="file" id="file" accept="image/*" hidden>
+      <label class="f" for="profile">Profil matériel</label>
+      <select id="profile">
+        {% for p in profiles %}<option value="{{p}}" {% if p == default_profile %}selected{% endif %}>{{p}}</option>{% endfor %}
+      </select>
+      <label class="f" for="thick">Épaisseur si non écrite (mm)</label>
+      <input type="number" id="thick" step="0.1" min="0.1" value="{{default_thickness}}">
+      <div class="row">
+        <button class="btn" id="go" disabled>Lancer</button>
+        {% if has_example %}<button class="btn ghost" id="ex">Exemple</button>{% endif %}
+      </div>
+      <div class="hint">Contour au trait épais, cotes au trait fin. Le premier lancement télécharge les modèles OCR.</div>
+      <div class="err" id="upErr"></div>
+    </div>
+    <div class="card" style="margin-top:16px">
+      <h2>Essais</h2>
+      <ul class="hist" id="hist"></ul>
+    </div>
+  </aside>
+
+  <section class="card" id="result">
+    <div class="empty" id="empty">
+      <b>Aucun essai sélectionné</b>
+      <span>Déposez une photo de croquis ou lancez l'exemple.</span>
+    </div>
+    <div id="job" hidden>
+      <div class="status" id="status"></div>
+      <div class="choice" id="choice" hidden></div>
+      <div class="ctx" id="ctx" hidden></div>
+      <div id="body" hidden>
+        <div class="metrics" id="metrics"></div>
+        <div class="tabs" id="tabs">
+          <button data-p="p3d" class="on">3D</button>
+          <button data-p="p2d">Plan 2D</button>
+          <button data-p="psom">Croquis annoté</button>
+          <button data-p="pcmp">Comparaison</button>
+          <button data-p="ptxt">Textes</button>
+          <button data-p="pcot">Cotes</button>
+          <button data-p="prep">Rapport</button>
+        </div>
+        <div class="pane on" id="p3d"><div id="v3d"><span class="legend">clic gauche : tourner · molette : zoom · clic droit : déplacer</span></div></div>
+        <div class="pane" id="p2d"><div class="view"><img id="svg" alt="Plan 2D coté"></div></div>
+        <div class="pane" id="psom"><div class="view"><img id="som" alt="Croquis annoté"></div>
+          <div class="hint">V* sommets, E* arêtes, C* perçages, T* cotes lues. Servez-vous de ces noms dans l'onglet Cotes.</div></div>
+        <div class="pane" id="pcmp"><div class="view"><img id="cmp" alt="Croquis et profil reconstruit"></div></div>
+        <div class="pane" id="pcot">
+          <table><thead><tr><th>Cote</th><th>Type</th><th>Élément</th><th>Valeur</th><th class="c">Suppr.</th></tr></thead><tbody id="cot"></tbody></table>
+          <label class="f" for="cthick">Épaisseur (mm)</label>
+          <input type="number" id="cthick" step="0.1" style="max-width:160px">
+          <div class="row" style="max-width:320px"><button class="btn" id="resolve">Recalculer</button></div>
+          <div class="hint">Le solveur et la CAO sont relancés avec ces valeurs ; l'OCR et le VLM ne sont pas rejoués.</div>
+          <div class="err" id="cotErr"></div>
+        </div>
+        <div class="pane" id="ptxt">
+          <div class="hint" style="margin:0 0 10px">L'OCR lit mal certaines écritures. Corrigez le texte tel qu'il est écrit sur le
+            papier, puis relancez. Exemples : <span class="mono">r=0,5</span> · <span class="mono">d=1m</span> ·
+            <span class="mono">h=40cm</span> · <span class="mono">Ø12</span> · <span class="mono">R10</span> ·
+            <span class="mono">110°</span> · <span class="mono">ep 5</span> · <span class="mono">150</span>.
+            Videz une case pour ignorer ce texte.</div>
+          <table><thead><tr><th>Texte</th><th>Lu par l'OCR / corrigé</th><th>Compris comme</th></tr></thead><tbody id="txt"></tbody></table>
+          <div class="row" style="flex-wrap:wrap;align-items:center;max-width:720px">
+            <input type="text" id="addRaw" placeholder="Ajouter une cote, ex. r=5m" style="flex:2;min-width:180px;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--bg);color:var(--ink)">
+            <select id="addWhere" style="flex:1;min-width:160px">
+              <option value="center">écrite au centre</option><option value="right">à droite (hauteur, côté)</option>
+              <option value="top">en haut</option><option value="bottom">en bas</option><option value="left">à gauche</option>
+            </select>
+          </div>
+          <div class="row" style="max-width:320px"><button class="btn" id="applyTxt">Appliquer et relancer</button></div>
+          <div class="err" id="txtErr"></div>
+        </div>
+        <div class="pane" id="prep"><div id="rep"></div></div>
+        <div class="dl" id="dl"></div>
+      </div>
+      <div class="err" id="jobErr"></div>
+    </div>
+  </section>
+</main>
+
+<script type="module">
+import * as THREE from "three";
+import { STLLoader } from "/static/vendor/STLLoader.js";
+import { OrbitControls } from "/static/vendor/OrbitControls.js";
+
+const $ = s => document.querySelector(s);
+let file = null, current = null, poll = null, viewer = null, loadedStl = null;
+
+// ---------------------------------------------------------------- dépôt
+const drop = $("#drop"), inp = $("#file");
+drop.onclick = () => inp.click();
+inp.onchange = () => pick(inp.files[0]);
+["dragover","dragenter"].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.add("over"); }));
+["dragleave","drop"].forEach(e => drop.addEventListener(e, ev => { ev.preventDefault(); drop.classList.remove("over"); }));
+drop.addEventListener("drop", ev => pick(ev.dataTransfer.files[0]));
+function pick(f){
+  if(!f) return; file = f;
+  const img = $("#preview"); img.src = URL.createObjectURL(f); img.hidden = false;
+  $("#dropText").innerHTML = `<small>${f.name}</small>`; $("#go").disabled = false;
+}
+async function start(example){
+  $("#upErr").textContent = "";
+  const fd = new FormData();
+  fd.append("profile", $("#profile").value); fd.append("thickness", $("#thick").value);
+  if(example) fd.append("example","1"); else fd.append("image", file);
+  const r = await fetch("/api/jobs", {method:"POST", body:fd}); const j = await r.json();
+  if(!r.ok){ $("#upErr").textContent = j.error || "Erreur"; return; }
+  await refreshHist(); open(j.id);
+}
+$("#go").onclick = () => start(false);
+if($("#ex")) $("#ex").onclick = () => start(true);
+
+// ---------------------------------------------------------------- historique
+async function refreshHist(){
+  const list = await (await fetch("/api/jobs")).json();
+  $("#hist").innerHTML = list.length ? list.map(j => `<li data-id="${j.id}" class="${j.id===current?'sel':''}">
+    <span><span class="dot ${j.state}"></span>${esc(j.name)}</span><span class="t">${j.id.slice(9,15).replace(/(..)(..)(..)/,'$1:$2:$3')}</span></li>`).join("")
+    : `<li style="cursor:default;color:var(--muted)">Aucun essai pour l'instant</li>`;
+  document.querySelectorAll("#hist li[data-id]").forEach(li => li.onclick = () => open(li.dataset.id));
+}
+function esc(s){ return String(s ?? "").replace(/[&<>"]/g, c => ({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c])); }
+
+// ---------------------------------------------------------------- essai
+function open(id){
+  current = id; clearInterval(poll); loadedStl = null;
+  $("#empty").hidden = true; $("#job").hidden = false; $("#body").hidden = true; $("#jobErr").textContent = "";
+  document.querySelectorAll("#hist li").forEach(li => li.classList.toggle("sel", li.dataset.id === id));
+  tick(); poll = setInterval(tick, 1500);
+}
+async function tick(){
+  const id = current; const j = await (await fetch(`/api/jobs/${id}`)).json();
+  if(id !== current) return;
+  const st = $("#status");
+  if(j.state === "queued" || j.state === "running"){
+    st.className = "status run";
+    st.innerHTML = `<span class="spin"></span>${j.state === "queued" ? "En attente…" : "Calcul en cours : perception, graphe, solveur, critique, CAO"}<span class="sub">${j.elapsed ?? 0} s</span>`;
+    return;
+  }
+  clearInterval(poll); refreshHist();
+  if(j.state === "error"){
+    st.className = "status bad"; st.textContent = "Échec du calcul";
+    $("#jobErr").textContent = j.error + "\n(détail : error.txt dans le dossier de l'essai)"; return;
+  }
+  render(j);
+}
+const SHAPES = {prism:"pièce plate", cylinder:"cylindre", revolution:"corps de révolution", sphere:"sphère",
+                disc:"disque", open:"dessin ouvert", circle:"cercle", choose_drawing:"feuille"};
+async function rerun(body){
+  const r = await fetch(`/api/jobs/${current}/rerun`, {method:"POST", headers:{"Content-Type":"application/json"},
+                                                       body: JSON.stringify(body)});
+  if(!r.ok){ alert((await r.json()).error); return; }
+  open(current);
+}
+function drawingButtons(r, id, v){
+  return `<img src="/files/${id}/sheet.png?v=${v}" alt="Dessins trouvés sur la feuille">
+    <div class="btns">${r.drawings.map(d => `<button class="btn sm ${d.index === r.drawing ? "" : "ghost"}" data-d="${d.index}">
+      Dessin ${d.index + 1}${d.cut ? " (coupé)" : ""}${d.texts.length ? ` · ${d.texts.length} cote(s)` : ""}</button>`).join("")}</div>`;
+}
+function wireDrawingButtons(el){ el.querySelectorAll("[data-d]").forEach(b => b.onclick = () => rerun({drawing: +b.dataset.d})); }
+function render(j){
+  const r = j.report, id = j.id, v = Date.now();
+  const s = r.status || "";
+  const ch = $("#choice"), ctx = $("#ctx");
+  ch.hidden = true; ctx.hidden = true;
+  if(r.choice){
+    $("#status").className = "status warn";
+    $("#status").innerHTML = `${esc(r.choice.message)}<span class="sub">${esc(j.meta?.name || "")}</span>`;
+    $("#body").hidden = true; ch.hidden = false;
+    if(r.choice.type === "drawing"){
+      ch.innerHTML = drawingButtons(r, id, v); wireDrawingButtons(ch);
+    } else {
+      ch.innerHTML = `<img src="/files/${id}/som.png?v=${v}" alt="Cercle détecté" style="max-height:420px">
+        <div class="btns"><button class="btn" data-i="sphere">Sphère</button><button class="btn" data-i="disc">Disque</button></div>
+        <div class="hint">Pour un disque, l'épaisseur vient de « ep » sur le croquis ou de la valeur par défaut (${esc(j.meta?.default_thickness ?? "")} mm).</div>`;
+      ch.querySelectorAll("[data-i]").forEach(b => b.onclick = () => rerun({interpret: b.dataset.i}));
+    }
+    return;
+  }
+  const bits = [];
+  if((r.drawings || []).length > 1)
+    bits.push(`Dessin ${(r.drawing ?? 0) + 1} sur ${r.drawings.length} <button class="btn ghost" id="chgD">Changer de dessin</button>`);
+  if(r.shape === "sphere" || r.shape === "disc")
+    bits.push(`Interprété comme <b>${SHAPES[r.shape]}</b> <button class="btn ghost" id="chgI">Plutôt ${r.shape === "sphere" ? "un disque" : "une sphère"}</button>`);
+  if(bits.length){
+    ctx.hidden = false; ctx.innerHTML = bits.join(" · ");
+    if($("#chgD")) $("#chgD").onclick = () => { ch.hidden = false; ch.innerHTML = drawingButtons(r, id, v); wireDrawingButtons(ch); };
+    if($("#chgI")) $("#chgI").onclick = () => rerun({interpret: r.shape === "sphere" ? "disc" : "sphere"});
+  }
+  const cls = s.startsWith("OK avec") ? "warn" : s.startsWith("OK") ? "ok" : "bad";
+  $("#status").className = "status " + cls;
+  $("#status").innerHTML = `${esc(s)}<span class="sub">${esc(j.meta?.name || "")} · profil ${esc(r.profile)} · graphe ${esc(r.graph_method)}${j.elapsed ? " · " + j.elapsed + " s" : ""}${r.edited ? " · cotes modifiées" : ""}</span>`;
+  const size = j.size || [0,0,0];
+  const v3 = r.solid?.volume ? parseFloat(r.solid.volume) : null;  // mm³
+  const vol = v3 == null ? "—" : v3 >= 1e8 ? fmt(v3 / 1e9) + " m³" : fmt(v3 / 1000) + " cm³";
+  $("#metrics").innerHTML = [
+    [`${fmt(size[0])} × ${fmt(size[1])} × ${fmt(size[2])}`, "encombrement (mm)"],
+    [vol, "volume"],
+    (r.shape && r.shape !== "prism") ? [SHAPES[r.shape] || r.shape, "forme reconnue"] : [`${r.vertices} / ${r.holes}`, "sommets / perçages"],
+    [Number(r.max_residual_mm).toExponential(1) + " mm", "résidu max des cotes"],
+    [String(r.dof_remaining), "degrés de liberté restants"],
+  ].map(([b,t]) => `<div><b>${b}</b><span>${t}</span></div>`).join("");
+  const f = n => `/files/${id}/${n}?v=${v}`;
+  $("#svg").src = j.files.includes("part.svg") ? f("part.svg") : "";
+  $("#som").src = f("som.png"); $("#cmp").src = f("comparison.png");
+  // rapport
+  const crit = (r.critic || []).map(c => `<li>Critique ${c.iteration} — IoU ${c.iou} : ${c.issues.length ? esc(c.issues.join(" ; ")) : "rien à signaler"}</li>`).join("");
+  const warn = (r.warnings || []).map(w => `<li>${esc(w)}</li>`).join("");
+  const conf = (r.conflicts || []).map(w => `<li style="color:var(--bad)">${esc(w)}</li>`).join("");
+  const rel = (r.relaxed_implicit || []).map(w => `<li>${esc(w)}</li>`).join("");
+  $("#rep").innerHTML = `
+    ${conf ? `<h3>Conflits de cotes</h3><ul class="issues">${conf}</ul>` : ""}
+    <h3>Boucle critique</h3><ul class="issues">${crit || "<li>—</li>"}</ul>
+    <h3>Avertissements</h3><ul class="issues">${warn || "<li>Aucun</li>"}</ul>
+    ${rel ? `<h3>Contraintes implicites relâchées</h3><ul class="issues">${rel}</ul>` : ""}
+    ${r.vlm_critic ? `<h3>Avis du VLM</h3><pre class="mono">${esc(r.vlm_critic)}</pre>` : ""}`;
+  // téléchargements
+  const order = ["part.step","part.stl","part.dxf","part.svg","part.py","graph.json","report.json"];
+  $("#dl").innerHTML = order.filter(n => j.files.includes(n)).map((n,i) =>
+    `<a class="${i<4?'main':''}" href="/files/${id}/${n}?dl=1">⬇ ${n}</a>`).join("");
+  $("#body").hidden = false;
+  loadTexts(id);
+  if(j.files.includes("graph.json") || j.files.includes("solution.json")) loadCotes(id); else $("#cot").innerHTML = "";
+  if(j.files.includes("part.stl")) show3d(f("part.stl"));
+  else if(viewer) viewer.clear();
+}
+const fmt = x => Number(x).toLocaleString("fr-FR", {maximumFractionDigits: 3});
+
+// ---------------------------------------------------------------- onglets
+document.querySelectorAll("#tabs button").forEach(b => b.onclick = () => {
+  document.querySelectorAll("#tabs button").forEach(x => x.classList.toggle("on", x === b));
+  document.querySelectorAll(".pane").forEach(p => p.classList.toggle("on", p.id === b.dataset.p));
+  if(b.dataset.p === "p3d" && viewer) viewer.resize();
+});
+
+// ---------------------------------------------------------------- textes OCR corrigeables
+const KINDS = {length:"longueur", angle:"angle", radius:"rayon", diameter:"diamètre", thickness:"épaisseur",
+               ambiguous:"diamètre ou longueur", unknown:"⚠ illisible"};
+async function loadTexts(id){
+  const t = await (await fetch(`/api/jobs/${id}/texts`)).json();
+  $("#txt").innerHTML = t.texts.length ? t.texts.map(x => `<tr data-id="${x.id}">
+      <td class="mono">${x.id}</td><td><input type="text" value="${esc(x.raw)}" style="max-width:220px"></td>
+      <td>${x.kind === "unknown" ? `<span style="color:var(--bad)">${KINDS.unknown}</span>`
+           : `${KINDS[x.kind] || x.kind} ${x.kind === "angle" ? fmt(x.value) + "°" : fmt(x.value) + " mm"}`}</td></tr>`).join("")
+    : `<tr><td colspan="3" style="color:var(--muted)">Aucun texte lu sur ce dessin.</td></tr>`;
+}
+$("#applyTxt").onclick = () => {
+  const add = $("#addRaw").value.trim() ? [{raw: $("#addRaw").value, where: $("#addWhere").value}] : [];
+  $("#addRaw").value = "";
+  rerun({texts: [...document.querySelectorAll("#txt tr[data-id]")].map(tr =>
+    ({id: tr.dataset.id, raw: tr.querySelector("input").value})), add});
+};
+
+// ---------------------------------------------------------------- cotes éditables
+let graphInfo = null;
+async function loadCotes(id){
+  graphInfo = await (await fetch(`/api/jobs/${id}/graph`)).json();
+  const names = {length:"longueur", angle:"angle (°)", fillet:"congé R", diameter:"diamètre Ø",
+                 cyl_diameter:"diamètre Ø du cylindre (mm)", cyl_height:"hauteur du cylindre (mm)",
+                 arc_radius:"rayon du dôme R", radius_at:"rayon (Ø/2) à ce sommet",
+                 circ_radius:"rayon (mm)", circ_thickness:"épaisseur du disque (mm)"};
+  const opts = t => (t === "length" || t === "arc_radius") ? graphInfo.edges : t === "diameter" ? graphInfo.circles : graphInfo.vertices;
+  const fixed = t => t.startsWith("cyl_") || t.startsWith("circ_");
+  $("#cot").innerHTML = graphInfo.rows.map(r => `<tr data-i="${r.index}">
+    <td class="mono">${esc(r.source || "—")}</td><td>${names[r.type]}${r.note ? ` <small title="${esc(r.note)}">✎</small>` : ""}</td>
+    <td>${fixed(r.type) ? "—" : `<select>${opts(r.type).map(o => `<option ${o===r.target?"selected":""}>${o}</option>`).join("")}</select>`}</td>
+    <td><input type="number" step="any" value="${r.value}"></td>
+    <td class="c">${fixed(r.type) ? "" : `<input type="checkbox">`}</td></tr>`).join("");
+  $("#cthick").value = graphInfo.thickness ?? "";
+  const cyl = graphInfo.shape !== "heuristic" && graphInfo.shape !== "vlm";
+  $("#cthick").hidden = cyl; $("label[for=cthick]").hidden = cyl;
+}
+$("#resolve").onclick = async () => {
+  $("#cotErr").textContent = "";
+  const rows = [...document.querySelectorAll("#cot tr")].map(tr => ({
+    index: +tr.dataset.i, target: tr.querySelector("select")?.value,
+    value: tr.querySelector("input[type=number]").value, delete: !!tr.querySelector("input[type=checkbox]")?.checked }));
+  const r = await fetch(`/api/jobs/${current}/resolve`, {method:"POST", headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({rows, thickness: $("#cthick").value})});
+  if(!r.ok){ $("#cotErr").textContent = (await r.json()).error; return; }
+  open(current);
+};
+
+// ---------------------------------------------------------------- visionneuse 3D
+function makeViewer(el){
+  const renderer = new THREE.WebGLRenderer({antialias:true, alpha:true, preserveDrawingBuffer:true});
+  renderer.setPixelRatio(window.devicePixelRatio); el.prepend(renderer.domElement);
+  const scene = new THREE.Scene();
+  const cam = new THREE.PerspectiveCamera(35, 1, 0.1, 10000);
+  scene.add(new THREE.HemisphereLight(0xffffff, 0x8a96a6, 1.1));
+  const d1 = new THREE.DirectionalLight(0xffffff, 1.6); d1.position.set(1, -1.5, 2); scene.add(d1);
+  const d2 = new THREE.DirectionalLight(0xffffff, 0.5); d2.position.set(-2, 1, 1); scene.add(d2);
+  const ctl = new OrbitControls(cam, renderer.domElement); ctl.enableDamping = true;
+  let obj = null, grid = null;
+  const resize = () => { const w = el.clientWidth, h = el.clientHeight; if(!w) return;
+    renderer.setSize(w, h, false); cam.aspect = w / h; cam.updateProjectionMatrix(); };
+  new ResizeObserver(resize).observe(el); resize();
+  (function loop(){ requestAnimationFrame(loop); ctl.update(); renderer.render(scene, cam); })();
+  return {
+    resize,
+    clear(){ if(obj){ scene.remove(obj); obj.geometry.dispose(); obj = null; } if(grid){ scene.remove(grid); grid = null; } loadedStl = null; },
+    set(geo){
+      if(obj){ scene.remove(obj); obj.geometry.dispose(); } if(grid) scene.remove(grid);
+      geo.computeBoundingBox(); const bb = geo.boundingBox, c = new THREE.Vector3(); bb.getCenter(c);
+      geo.translate(-c.x, -c.y, -bb.min.z);
+      const size = new THREE.Vector3(); bb.getSize(size); const R = Math.max(size.x, size.y, size.z);
+      obj = new THREE.Mesh(geo, new THREE.MeshStandardMaterial({color:0x5b8fd6, metalness:0.25, roughness:0.45}));
+      const edges = new THREE.LineSegments(new THREE.EdgesGeometry(geo, 25), new THREE.LineBasicMaterial({color:0x1b2a40}));
+      obj.add(edges); scene.add(obj);
+      grid = new THREE.GridHelper(Math.ceil(R * 1.6 / 10) * 10, Math.ceil(R * 1.6 / 10), 0x9aa6b4, 0xc9d0d9);
+      grid.rotation.x = Math.PI / 2; grid.position.z = -0.01; scene.add(grid);
+      // cadrage sur la sphère englobante, quelle que soit la forme (plaque ou pièce haute)
+      const sr = size.length() / 2, fov = THREE.MathUtils.degToRad(cam.fov);
+      const dist = sr / Math.sin(fov / 2) * 1.1 / Math.min(1, cam.aspect);
+      const dir = new THREE.Vector3(0.55, -0.85, 0.55).normalize();
+      cam.near = dist / 100; cam.far = dist * 20; cam.updateProjectionMatrix();
+      cam.up.set(0, 0, 1); cam.position.copy(dir.multiplyScalar(dist)).add(new THREE.Vector3(0, 0, size.z / 2));
+      ctl.target.set(0, 0, size.z / 2); ctl.update();
+    }
+  };
+}
+function show3d(url){
+  if(loadedStl === url) return; loadedStl = url;
+  if(!viewer) viewer = makeViewer($("#v3d"));
+  new STLLoader().load(url, geo => viewer.set(geo));
+}
+
+refreshHist();
+</script>
+</body>
+</html>

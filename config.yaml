@@ -1,0 +1,29 @@
+# Configuration Sketch2CAD-Local
+# Profil par défaut ; surchargeable avec --profile (gpu8 | gpu4 | cpu | offline)
+profile: offline
+
+# Ollama doit rester local : les croquis ne quittent jamais la machine.
+ollama_host: http://localhost:11434
+
+default_thickness: 5.0          # mm, si aucune épaisseur n'est écrite sur le croquis
+ocr_backends: [paddle, easyocr, tesseract]   # essayés dans cet ordre
+max_critic_iterations: 3
+iou_min: 0.6                    # ressemblance minimale croquis / profil résolu
+
+profiles:
+  gpu8:      # GPU 8 à 12 Go : modèles 7B quantifiés, chargés l'un après l'autre
+    vlm: qwen2.5vl:7b
+    coder: qwen2.5-coder:7b
+    vlm_critic: true
+  gpu4:      # GPU 4 à 8 Go
+    vlm: qwen2.5vl:3b
+    coder: qwen2.5-coder:3b
+    vlm_critic: true
+  cpu:       # pas de GPU, au moins 16 Go de RAM (lent : 1 à 3 min par croquis pour le VLM)
+    vlm: qwen2.5vl:3b
+    coder: null
+    vlm_critic: false
+  offline:   # aucun modèle de langage : OCR + heuristiques + solveur
+    vlm: null
+    coder: null
+    vlm_critic: false

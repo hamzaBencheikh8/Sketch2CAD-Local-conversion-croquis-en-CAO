@@ -1,0 +1,19 @@
+# Cœur (obligatoire) — Python 3.10 à 3.12 recommandé
+numpy>=1.24
+opencv-python>=4.8
+scipy>=1.11
+shapely>=2.0
+ezdxf>=1.1
+pydantic>=2.5
+pyyaml>=6.0
+build123d>=0.8          # noyau OpenCASCADE : export STEP / STL
+flask>=3.0              # interface web de test (locale)
+
+# OCR des cotes manuscrites (CPU)
+paddlepaddle>=3.0
+paddleocr>=3.0
+
+# Optionnels
+# pytesseract>=0.3      # repli OCR (nécessite le binaire Tesseract)
+# easyocr>=1.7          # repli OCR (tire PyTorch, ~2 Go)
+pytest>=8.0
