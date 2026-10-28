@@ -70,8 +70,68 @@ def create_app(work_dir: Path | None = None, config_path: Path | None = None) ->
     @app.get("/")
     def index():
         cfg = load_config(config_path)
-        return render_template("index.html", profiles=list(cfg["profiles"]), default_profile=cfg["profile"],
+        return render_template("index.html", profiles=[p for p in cfg["profiles"] if p != "api"],
+                               default_profile=cfg["profile"],
                                default_thickness=cfg["default_thickness"], has_example=EXAMPLE.exists())
+
+    # ------------------------------------------------------------------ réglages du profil « api »
+    def _settings_view() -> dict:
+        from .cloud import PROVIDERS, load_settings, mask_key, resolve
+        cfg = load_config(config_path)
+        st = load_settings()
+        r = resolve(cfg.get("api"), st)
+        import os
+        provs = {k: {"label": v["label"], "model": v["model"], "key_url": v["key_url"], "env": v["env"],
+                     "has_key": bool(os.environ.get(v["env"]) or st.get("keys", {}).get(k)),
+                     "key_masked": mask_key(os.environ.get(v["env"]) or st.get("keys", {}).get(k, "")),
+                     "from_env": bool(os.environ.get(v["env"]))}
+                 for k, v in PROVIDERS.items()}
+        return {"provider": r["provider"], "model": st.get("model") or "", "effective_model": r["model"],
+                "scope": r["scope"], "providers": provs}
+
+    @app.get("/api/settings")
+    def get_settings():
+        return jsonify(_settings_view())
+
+    @app.post("/api/settings")
+    def set_settings():
+        from .cloud import PROVIDERS, SCOPES, load_settings, save_settings
+        body = request.get_json(force=True)
+        st = load_settings()
+        if body.get("provider") in PROVIDERS:
+            if body["provider"] != st.get("provider"):
+                st["model"] = ""  # modèle propre à chaque fournisseur
+            st["provider"] = body["provider"]
+        if "model" in body:
+            st["model"] = (body.get("model") or "").strip()
+        if body.get("scope") in SCOPES:
+            st["scope"] = body["scope"]
+        if body.get("key"):
+            st.setdefault("keys", {})[st["provider"]] = body["key"].strip()
+        if body.get("forget_key"):
+            st.setdefault("keys", {}).pop(st["provider"], None)
+        save_settings(st)
+        return jsonify(_settings_view())
+
+    @app.post("/api/settings/test")
+    def test_settings():
+        from .cloud import CloudError, CloudVLM, resolve
+        r = resolve(load_config(config_path).get("api"))
+        t0 = time.time()
+        try:
+            reply = CloudVLM.from_settings(r).chat(None, "Réponds seulement : OK")
+        except CloudError as exc:
+            return jsonify(ok=False, error=str(exc)[:400])
+        return jsonify(ok=True, reply=reply.strip()[:80], seconds=round(time.time() - t0, 1), model=r["model"])
+
+    @app.get("/api/settings/models")
+    def list_models():
+        from .cloud import CloudError, CloudVLM, resolve
+        r = resolve(load_config(config_path).get("api"))
+        try:
+            return jsonify(ok=True, models=CloudVLM.from_settings(r).list_models())
+        except CloudError as exc:
+            return jsonify(ok=False, error=str(exc)[:400])
 
     # ------------------------------------------------------------------ API
     @app.post("/api/jobs")
@@ -114,7 +174,11 @@ def create_app(work_dir: Path | None = None, config_path: Path | None = None) ->
         """Textes lus sur le dessin traité (ou sur toute la feuille si aucun dessin n'est choisi)."""
         d = _job_dir(jid)
         p = Perception.model_validate_json((d / "perception.json").read_text(encoding="utf-8"))
-        return jsonify(texts=[{"id": t.id, "raw": t.raw, "kind": t.kind, "value": t.value} for t in p.dimensions])
+        tpath = d / "texts_all.json"
+        extra = {t["id"]: t for t in json.loads(tpath.read_text(encoding="utf-8"))} if tpath.exists() else {}
+        return jsonify(texts=[{"id": t.id, "raw": t.raw, "kind": t.kind, "value": t.value,
+                               "src": extra.get(t.id, {}).get("src"), "ocr_raw": extra.get(t.id, {}).get("ocr_raw")}
+                              for t in p.dimensions])
 
     @app.post("/api/jobs/<jid>/rerun")
     def rerun(jid):

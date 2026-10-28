@@ -88,6 +88,20 @@ td.c{text-align:center}
 .dl a{font:12px var(--mono);padding:6px 10px;border:1px solid var(--line);border-radius:6px;color:var(--ink);text-decoration:none;background:var(--bg)}
 .dl a.main{border-color:var(--accent);color:var(--accent);font-weight:600}
 .err{color:var(--bad);font-size:13px;margin-top:8px;white-space:pre-wrap}
+.seg{display:grid;grid-template-columns:1fr 1fr;border:1px solid var(--line);border-radius:7px;overflow:hidden;background:var(--bg)}
+.seg button{border:0;background:none;color:var(--muted);font:600 13px var(--sans);padding:8px 6px;cursor:pointer}
+.seg button.on{background:var(--accent);color:var(--accent-ink)}
+.apibox{margin-top:12px;padding:12px;border:1px solid var(--line);border-radius:8px;background:var(--bg)}
+.apibox label.f:first-child{margin-top:0}
+.apibox input[type=text],.apibox input[type=password]{width:100%;padding:8px 10px;border:1px solid var(--line);border-radius:6px;background:var(--panel);color:var(--ink);font:13px var(--mono)}
+.apibox select{background:var(--panel)}
+.inl{display:flex;gap:6px;align-items:center}.inl input{flex:1;min-width:0}
+.radio{display:flex;gap:8px;align-items:flex-start;font-size:13px;margin:6px 0;cursor:pointer}
+.radio input{margin-top:3px}.radio small{display:block;color:var(--muted)}
+.keyst{font:12px var(--mono);margin-top:6px;color:var(--muted)}.keyst.ok{color:var(--ok)}.keyst.bad{color:var(--bad)}
+.apibox a{color:var(--accent);font-size:12px}
+header .local.api{color:var(--warn)}
+.tagapi{font:600 10px var(--mono);padding:1px 5px;border-radius:4px;background:var(--accent-soft);color:var(--accent);margin-left:6px;cursor:help}
 </style>
 <script type="importmap">{"imports":{"three":"/static/vendor/three.module.min.js"}}</script>
 </head>
@@ -95,7 +109,7 @@ td.c{text-align:center}
 <header>
   <h1>Sketch2CAD-Local</h1>
   <span class="tag">croquis coté → DXF · SVG · STEP · STL</span>
-  <span class="local">● 100 % local — 127.0.0.1</span>
+  <span class="local" id="where">● 100 % local — 127.0.0.1</span>
 </header>
 <main>
   <aside>
@@ -106,10 +120,37 @@ td.c{text-align:center}
         <div id="dropText"><b>Déposez la photo ici</b><br><small>ou cliquez pour choisir (JPG, PNG)</small></div>
       </div>
       <input type="file" id="file" accept="image/*" hidden>
-      <label class="f" for="profile">Profil matériel</label>
-      <select id="profile">
-        {% for p in profiles %}<option value="{{p}}" {% if p == default_profile %}selected{% endif %}>{{p}}</option>{% endfor %}
-      </select>
+      <label class="f">Lecture des cotes</label>
+      <div class="seg" id="mode">
+        <button data-m="local" class="on">Local (privé)</button>
+        <button data-m="api">API gratuite</button>
+      </div>
+      <div id="localBox">
+        <label class="f" for="profile">Profil matériel</label>
+        <select id="profile">
+          {% for p in profiles %}<option value="{{p}}" {% if p == default_profile %}selected{% endif %}>{{p}}</option>{% endfor %}
+        </select>
+      </div>
+      <div class="apibox" id="apiBox" hidden>
+        <label class="f" for="prov">Fournisseur</label>
+        <select id="prov"></select>
+        <label class="f" for="akey">Clé API <a id="keyUrl" href="#" target="_blank" rel="noopener">créer une clé gratuite ↗</a></label>
+        <div class="inl"><input type="password" id="akey" autocomplete="off" placeholder="collez la clé ici">
+          <button class="btn sm" id="saveKey">Enregistrer</button></div>
+        <div class="keyst" id="keySt"></div>
+        <label class="f" for="amodel">Modèle</label>
+        <div class="inl"><input type="text" id="amodel" list="models" placeholder="par défaut">
+          <button class="btn sm ghost" id="listModels" title="Lister les modèles de ce fournisseur">Lister</button></div>
+        <datalist id="models"></datalist>
+        <label class="f">Ce qui est envoyé</label>
+        <label class="radio"><input type="radio" name="scope" value="textes">
+          <span>Zones de texte seulement<small>« 150 », « R10 »… le dessin de la pièce reste sur le PC</small></span></label>
+        <label class="radio"><input type="radio" name="scope" value="complet">
+          <span>Image entière<small>meilleure lecture, retrouve les cotes oubliées par l'OCR</small></span></label>
+        <div class="row" style="margin-top:8px"><button class="btn sm ghost" id="testKey">Tester la connexion</button></div>
+        <div class="hint">Seule la lecture des cotes passe par l'API ; le solveur et la CAO restent locaux et exacts.
+          Sans clé ou si le quota gratuit est épuisé, l'OCR local prend le relais.</div>
+      </div>
       <label class="f" for="thick">Épaisseur si non écrite (mm)</label>
       <input type="number" id="thick" step="0.1" min="0.1" value="{{default_thickness}}">
       <div class="row">
@@ -206,7 +247,10 @@ function pick(f){
 async function start(example){
   $("#upErr").textContent = "";
   const fd = new FormData();
-  fd.append("profile", $("#profile").value); fd.append("thickness", $("#thick").value);
+  if(mode === "api" && !apiSet?.providers?.[apiSet.provider]?.has_key){
+    $("#upErr").textContent = "Mode API : enregistrez d'abord une clé gratuite (lien « créer une clé gratuite »)."; return;
+  }
+  fd.append("profile", mode === "api" ? "api" : $("#profile").value); fd.append("thickness", $("#thick").value);
   if(example) fd.append("example","1"); else fd.append("image", file);
   const r = await fetch("/api/jobs", {method:"POST", body:fd}); const j = await r.json();
   if(!r.ok){ $("#upErr").textContent = j.error || "Erreur"; return; }
@@ -214,6 +258,68 @@ async function start(example){
 }
 $("#go").onclick = () => start(false);
 if($("#ex")) $("#ex").onclick = () => start(true);
+
+// ---------------------------------------------------------------- mode local / API gratuite
+let mode = "local", apiSet = null;
+const store = { get(k){ try { return localStorage.getItem(k); } catch(e){ return null; } },
+                set(k, v){ try { localStorage.setItem(k, v); } catch(e){} } };
+function setMode(m){
+  mode = m; store.set("s2c.mode", m);
+  document.querySelectorAll("#mode button").forEach(b => b.classList.toggle("on", b.dataset.m === m));
+  $("#localBox").hidden = m === "api"; $("#apiBox").hidden = m !== "api";
+  showWhere();
+}
+function showWhere(){
+  const w = $("#where");
+  if(mode === "api" && apiSet){
+    const p = apiSet.providers[apiSet.provider];
+    w.className = "local api";
+    w.textContent = `● API ${p.label.replace(/ \(.*/, "")} : ${apiSet.scope === "textes" ? "zones de texte seulement" : "image entière"} — le reste en local`;
+  } else { w.className = "local"; w.textContent = "● 100 % local — 127.0.0.1"; }
+}
+function keyStatus(msg, cls){ const k = $("#keySt"); k.className = "keyst " + (cls || ""); k.textContent = msg; }
+function fillApi(s){
+  apiSet = s;
+  $("#prov").innerHTML = Object.entries(s.providers).map(([k, p]) =>
+    `<option value="${k}" ${k === s.provider ? "selected" : ""}>${esc(p.label)}</option>`).join("");
+  const p = s.providers[s.provider];
+  $("#keyUrl").href = p.key_url;
+  $("#amodel").value = s.model; $("#amodel").placeholder = `par défaut : ${p.model}`;
+  document.querySelectorAll("input[name=scope]").forEach(r => r.checked = r.value === s.scope);
+  $("#akey").value = "";
+  if(p.from_env) keyStatus(`clé lue dans la variable ${p.env} (${p.key_masked})`, "ok");
+  else if(p.has_key) keyStatus(`clé enregistrée ${p.key_masked} — dans api_settings.json, sur ce PC`, "ok");
+  else keyStatus("aucune clé : créez-en une gratuitement avec le lien ci-dessus", "bad");
+  showWhere();
+}
+async function saveApi(body){
+  const r = await fetch("/api/settings", {method:"POST", headers:{"Content-Type":"application/json"}, body: JSON.stringify(body)});
+  fillApi(await r.json());
+}
+$("#prov").onchange = () => { $("#models").innerHTML = ""; saveApi({provider: $("#prov").value}); };
+$("#amodel").onchange = () => saveApi({model: $("#amodel").value});
+document.querySelectorAll("input[name=scope]").forEach(r => r.onchange = () => saveApi({scope: r.value}));
+$("#saveKey").onclick = async () => {
+  if(!$("#akey").value.trim()){ keyStatus("collez d'abord la clé", "bad"); return; }
+  await saveApi({key: $("#akey").value}); $("#testKey").click();
+};
+$("#akey").onkeydown = e => { if(e.key === "Enter") $("#saveKey").click(); };
+$("#testKey").onclick = async () => {
+  keyStatus("test en cours…");
+  const j = await (await fetch("/api/settings/test", {method:"POST"})).json();
+  if(j.ok) keyStatus(`connexion OK — ${j.model} a répondu en ${j.seconds} s`, "ok");
+  else keyStatus(j.error, "bad");
+};
+$("#listModels").onclick = async () => {
+  keyStatus("lecture de la liste des modèles…");
+  const j = await (await fetch("/api/settings/models")).json();
+  if(!j.ok){ keyStatus(j.error, "bad"); return; }
+  $("#models").innerHTML = j.models.map(m => `<option value="${esc(m)}">`).join("");
+  keyStatus(`${j.models.length} modèles disponibles : cliquez dans « Modèle » pour choisir`, "ok");
+  $("#amodel").focus();
+};
+document.querySelectorAll("#mode button").forEach(b => b.onclick = () => setMode(b.dataset.m));
+fetch("/api/settings").then(r => r.json()).then(s => { fillApi(s); setMode(store.get("s2c.mode") === "api" ? "api" : "local"); });
 
 // ---------------------------------------------------------------- historique
 async function refreshHist(){
@@ -293,7 +399,7 @@ function render(j){
   }
   const cls = s.startsWith("OK avec") ? "warn" : s.startsWith("OK") ? "ok" : "bad";
   $("#status").className = "status " + cls;
-  $("#status").innerHTML = `${esc(s)}<span class="sub">${esc(j.meta?.name || "")} · profil ${esc(r.profile)} · graphe ${esc(r.graph_method)}${j.elapsed ? " · " + j.elapsed + " s" : ""}${r.edited ? " · cotes modifiées" : ""}</span>`;
+  $("#status").innerHTML = `${esc(s)}<span class="sub">${esc(j.meta?.name || "")} · profil ${esc(r.profile)}${r.api ? (r.api.ok ? " (" + esc(r.api.provider) + ")" : " (API indisponible)") : ""} · graphe ${esc(r.graph_method)}${j.elapsed ? " · " + j.elapsed + " s" : ""}${r.edited ? " · cotes modifiées" : ""}</span>`;
   const size = j.size || [0,0,0];
   const v3 = r.solid?.volume ? parseFloat(r.solid.volume) : null;  // mm³
   const vol = v3 == null ? "—" : v3 >= 1e8 ? fmt(v3 / 1e9) + " m³" : fmt(v3 / 1000) + " cm³";
@@ -312,7 +418,15 @@ function render(j){
   const warn = (r.warnings || []).map(w => `<li>${esc(w)}</li>`).join("");
   const conf = (r.conflicts || []).map(w => `<li style="color:var(--bad)">${esc(w)}</li>`).join("");
   const rel = (r.relaxed_implicit || []).map(w => `<li>${esc(w)}</li>`).join("");
-  $("#rep").innerHTML = `
+  const a = r.api;
+  const apiHtml = !a ? "" : !a.ok
+    ? `<h3>Lecture par l'API</h3><ul class="issues"><li style="color:var(--bad)">${esc(a.provider)} indisponible : ${esc(a.error)} — lecture par l'OCR local.</li></ul>`
+    : `<h3>Lecture par l'API — ${esc(a.provider)} · ${esc(a.model)}</h3><ul class="issues">
+        <li>Envoyé : ${esc(a.sent)}${a.seconds != null ? " · " + a.seconds + " s" : ""}</li>
+        ${(a.changed || []).map(c => `<li>${esc(c.id)} : OCR « ${esc(c.ocr)} » → API « <b>${esc(c.api)}</b> »</li>`).join("")}
+        ${(a.added || []).map(c => `<li>${esc(c.id)} ajoutée par l'API : « <b>${esc(c.api)}</b> » (position approximative)</li>`).join("")}
+        ${!(a.changed || []).length && !(a.added || []).length ? "<li>L'API confirme la lecture de l'OCR.</li>" : ""}</ul>`;
+  $("#rep").innerHTML = `${apiHtml}
     ${conf ? `<h3>Conflits de cotes</h3><ul class="issues">${conf}</ul>` : ""}
     <h3>Boucle critique</h3><ul class="issues">${crit || "<li>—</li>"}</ul>
     <h3>Avertissements</h3><ul class="issues">${warn || "<li>Aucun</li>"}</ul>
@@ -343,7 +457,7 @@ const KINDS = {length:"longueur", angle:"angle", radius:"rayon", diameter:"diam�
 async function loadTexts(id){
   const t = await (await fetch(`/api/jobs/${id}/texts`)).json();
   $("#txt").innerHTML = t.texts.length ? t.texts.map(x => `<tr data-id="${x.id}">
-      <td class="mono">${x.id}</td><td><input type="text" value="${esc(x.raw)}" style="max-width:220px"></td>
+      <td class="mono">${x.id}${x.src === "api" ? `<span class="tagapi" title="${x.ocr_raw ? "OCR : « " + esc(x.ocr_raw) + " »" : "ajoutée par l'API"}">API</span>` : ""}</td><td><input type="text" value="${esc(x.raw)}" style="max-width:220px"></td>
       <td>${x.kind === "unknown" ? `<span style="color:var(--bad)">${KINDS.unknown}</span>`
            : `${KINDS[x.kind] || x.kind} ${x.kind === "angle" ? fmt(x.value) + "°" : fmt(x.value) + " mm"}`}</td></tr>`).join("")
     : `<tr><td colspan="3" style="color:var(--muted)">Aucun texte lu sur ce dessin.</td></tr>`;

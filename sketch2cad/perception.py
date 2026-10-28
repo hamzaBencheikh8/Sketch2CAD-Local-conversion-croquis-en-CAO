@@ -295,8 +295,10 @@ def draw_som(img: np.ndarray, p: Perception) -> np.ndarray:
 
 def perceive(image_path: str | Path, out_dir: Path, ocr_backends: list[str],
              dims_override: Optional[list[Dimension]] = None, drawing: Optional[int] = None,
-             ask: bool = False) -> tuple[Perception, np.ndarray]:
+             ask: bool = False, text_reader=None) -> tuple[Perception, np.ndarray]:
     """Exécute l'agent 1.
+
+    ``text_reader`` (profil « api ») relit les textes de l'OCR avec un modèle de vision distant.
 
     ``dims_override`` remplace l'OCR (textes corrigés à la main). ``drawing`` choisit le dessin
     quand la feuille en contient plusieurs ; avec ``ask=True`` on s'arrête pour demander.
@@ -317,11 +319,21 @@ def perceive(image_path: str | Path, out_dir: Path, ocr_backends: list[str],
     else:
         all_dims, w = run_ocr(norm, ocr_backends)
         warnings += w
-        # textes bruts conservés : l'utilisateur pourra les corriger puis relancer sans OCR
+        texts = [{"id": d.id, "raw": d.raw, "bbox": list(d.bbox), "conf": d.conf} for d in all_dims]
         import json as _json
-        (out_dir / "texts_all.json").write_text(_json.dumps(
-            [{"id": d.id, "raw": d.raw, "bbox": list(d.bbox), "conf": d.conf} for d in all_dims],
-            indent=2, ensure_ascii=False), encoding="utf-8")
+        if text_reader is not None:
+            from .ocr import dims_from_texts
+            texts_api, note = text_reader(norm, all_dims)
+            (out_dir / "api_read.json").write_text(_json.dumps(note, indent=2, ensure_ascii=False),
+                                                   encoding="utf-8")
+            if note.get("ok"):
+                texts = texts_api
+                all_dims = dims_from_texts(texts)
+            else:
+                warnings.append(f"API indisponible, lecture par l'OCR local : {note.get('error', '')[:160]}")
+        # textes bruts conservés : l'utilisateur pourra les corriger puis relancer sans OCR
+        (out_dir / "texts_all.json").write_text(_json.dumps(texts, indent=2, ensure_ascii=False),
+                                                encoding="utf-8")
     log.info("%d textes lus", len(all_dims))
 
     # ---- plusieurs dessins sur la feuille ?

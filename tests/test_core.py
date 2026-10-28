@@ -309,3 +309,89 @@ def test_split_by_darkness_low_res_capture():
     assert thr is not None
     assert strong[580, 400] == 0 and strong[350, 680] == 0       # cotation écartée
     assert strong[200, 400] > 0 and strong[350, 600] > 0         # contour conservé
+
+
+# --------------------------------------------------------------------------- profil « api »
+
+class _FakeCloud:
+    """Faux client : répond comme un modèle de vision, sans réseau."""
+    provider, model, calls = "fake", "fake-vlm", 0
+
+    def __init__(self, answer):
+        self.answer = answer
+        self.images = []
+
+    def chat(self, model, prompt, images=None, **kw):
+        self.calls += 1
+        self.images += images or []
+        return self.answer
+
+
+def test_cloud_parse_json_tolerant():
+    from sketch2cad.cloud import parse_json
+    assert parse_json('```json\n{"1": "R10"}\n```') == {"1": "R10"}
+    assert parse_json('Voici : {"1": "Ø12"} fin') == {"1": "Ø12"}
+
+
+def test_cloud_read_texts_replaces_only_valid_readings():
+    import numpy as np
+    from sketch2cad.cloud import read_texts
+    gray = np.full((400, 600), 255, np.uint8)
+    texts = [{"id": "T1", "raw": "r= 0r", "bbox": [10, 10, 80, 40], "conf": 0.7},
+             {"id": "T2", "raw": "150", "bbox": [100, 300, 160, 330], "conf": 0.95},
+             {"id": "T3", "raw": "R10", "bbox": [300, 300, 360, 330], "conf": 0.9}]
+    cl = _FakeCloud('```json\n{"1": "r=0,5", "2": "", "3": "n\'importe quoi"}\n```')
+    out, note = read_texts(cl, gray, texts, "textes")
+    assert [t["raw"] for t in out] == ["r=0,5", "150", "R10"]       # lecture OCR valide conservée
+    assert out[0]["ocr_raw"] == "r= 0r" and out[0]["src"] == "api"
+    assert note["changed"] == [{"id": "T1", "ocr": "r= 0r", "api": "r=0,5"}]
+    assert cl.calls == 1 and cl.images[0].shape[0] < 400                  # une seule mosaïque envoyée
+
+
+def test_cloud_full_scope_adds_missing_without_duplicates():
+    import numpy as np
+    from sketch2cad.cloud import read_texts
+    gray = np.full((1000, 1000), 255, np.uint8)
+    texts = [{"id": "T1", "raw": "ep 5", "bbox": [100, 900, 160, 930], "conf": 0.9}]
+    cl = _FakeCloud('{"texts": {"T1": "ep 5"}, "missing": [{"text": "Ø8", "x": 50, "y": 40},'
+                    ' {"text": "ep 5", "x": 80, "y": 20}, {"text": "bonjour", "x": 10, "y": 10}]}')
+    out, note = read_texts(cl, gray, texts, "complet")
+    assert [t["raw"] for t in out] == ["ep 5", "Ø8"]
+    x0, y0, x1, y1 = out[1]["bbox"]
+    assert abs((x0 + x1) / 2 - 500) < 1 and abs((y0 + y1) / 2 - 400) < 1
+
+
+def test_cloud_settings_priority_and_missing_key(tmp_path, monkeypatch):
+    from sketch2cad.cloud import CloudError, CloudVLM, resolve
+    monkeypatch.delenv("GROQ_API_KEY", raising=False)
+    st = {"provider": "groq", "model": "", "scope": "complet", "keys": {}}
+    r = resolve({"provider": "gemini", "scope": "textes"}, st)
+    assert r["provider"] == "groq" and r["scope"] == "complet" and "groq.com" in r["base_url"]
+    try:
+        CloudVLM.from_settings(r)
+        assert False, "une clé absente doit lever CloudError"
+    except CloudError as exc:
+        assert "console.groq.com" in str(exc)
+    monkeypatch.setenv("GROQ_API_KEY", "gsk_env")
+    assert resolve(None, st)["key"] == "gsk_env"
+
+
+def test_api_profile_falls_back_to_local_ocr(tmp_path, monkeypatch):
+    """Profil api sans clé : le pipeline aboutit quand même avec l'OCR local (cotes fournies ici)."""
+    import json
+    import sketch2cad.cloud as cloud
+    from sketch2cad.pipeline import load_config
+    monkeypatch.setattr(cloud, "load_settings", lambda path=None: {"provider": "gemini", "model": "",
+                                                                   "scope": "textes", "keys": {}})
+    monkeypatch.delenv("GEMINI_API_KEY", raising=False)
+    cfg = load_config(profile="api")
+    reader = cloud.make_text_reader(cfg)
+    assert reader is not None
+    from sketch2cad.schema import Dimension
+    import numpy as np
+    texts, note = reader(np.full((50, 50), 255, np.uint8),
+                         [Dimension(id="T1", raw="150", kind="length", value=150, bbox=(1, 1, 20, 10))])
+    assert note["ok"] is False and "aistudio.google.com" in note["error"]
+    assert texts[0]["raw"] == "150"
+    assert cloud.make_text_reader(load_config(profile="offline")) is None
+    json.dumps(note)

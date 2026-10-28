@@ -21,6 +21,7 @@ log = logging.getLogger(__name__)
 
 DEFAULT_CONFIG = {
     "profile": "offline",
+    "api": {"provider": "gemini", "model": "", "scope": "textes"},
     "ollama_host": "http://localhost:11434",
     "default_thickness": 5.0,
     "ocr_backends": ["paddle", "easyocr", "tesseract"],
@@ -31,6 +32,8 @@ DEFAULT_CONFIG = {
         "gpu4": {"vlm": "qwen2.5vl:3b", "coder": "qwen2.5-coder:3b", "vlm_critic": True},
         "cpu": {"vlm": "qwen2.5vl:3b", "coder": None, "vlm_critic": False},
         "offline": {"vlm": None, "coder": None, "vlm_critic": False},
+        # lecture des cotes par une API gratuite (Gemini, Groq, OpenRouter) ; le reste reste local
+        "api": {"vlm": None, "coder": None, "vlm_critic": False, "cloud": True},
     },
 }
 
@@ -56,6 +59,17 @@ def load_config(path: Optional[Path] = None, profile: Optional[str] = None) -> d
 
 def _models(cfg: dict) -> tuple[Optional[Ollama], Optional[str], Optional[str]]:
     act = cfg["active"]
+    if act.get("cloud"):
+        # portée « complet » : le modèle distant rattache aussi les cotes (agent 2) et relit le résultat
+        from .cloud import CloudError, CloudVLM, resolve
+        r = resolve(cfg.get("api"))
+        if r["scope"] != "complet" or not r["key"]:
+            return None, None, None
+        try:
+            client = CloudVLM.from_settings(r)
+        except CloudError:
+            return None, None, None
+        return client, r["model"], None
     if not act.get("vlm") and not act.get("coder"):
         return None, None, None
     client = Ollama(cfg["ollama_host"])
@@ -114,6 +128,18 @@ def _text_issues(p: Perception) -> list[str]:
 def run(image: Path, out_dir: Path, cfg: dict, dims_json: Optional[Path] = None,
         name: str = "part", extra_request: str = "", drawing: Optional[int] = None,
         interpret: Optional[str] = None, ask: bool = False) -> dict:
+    rep = _run(image, out_dir, cfg, dims_json, name, extra_request, drawing, interpret, ask)
+    note_p = Path(out_dir).resolve() / "api_read.json"
+    if note_p.exists():  # lecture des textes par l'API (profil « api ») : tracée dans le rapport
+        rep["api"] = json.loads(note_p.read_text(encoding="utf-8"))
+        (Path(out_dir).resolve() / "report.json").write_text(json.dumps(rep, indent=2, ensure_ascii=False),
+                                                              encoding="utf-8")
+    return rep
+
+
+def _run(image: Path, out_dir: Path, cfg: dict, dims_json: Optional[Path] = None,
+         name: str = "part", extra_request: str = "", drawing: Optional[int] = None,
+         interpret: Optional[str] = None, ask: bool = False) -> dict:
     out_dir = Path(out_dir).resolve()
     out_dir.mkdir(parents=True, exist_ok=True)
     for f in OUTPUTS:  # pas de fichiers d'un essai précédent qui traînent
@@ -123,7 +149,12 @@ def run(image: Path, out_dir: Path, cfg: dict, dims_json: Optional[Path] = None,
     if dims_json:
         dims = [Dimension(**d) for d in json.loads(Path(dims_json).read_text(encoding="utf-8"))]
 
-    p, img = perceive(image, out_dir, cfg["ocr_backends"], dims, drawing=drawing, ask=ask)   # agent 1
+    from .cloud import make_text_reader
+    reader = make_text_reader(cfg) if dims is None else None
+    if dims is None:
+        (out_dir / "api_read.json").unlink(missing_ok=True)
+    p, img = perceive(image, out_dir, cfg["ocr_backends"], dims, drawing=drawing, ask=ask,
+                      text_reader=reader)                                                  # agent 1
     if p.shape == "choose_drawing":
         return _choice_report(out_dir, cfg, p, "drawing",
                               [f"dessin {d['index'] + 1}" for d in p.drawings],

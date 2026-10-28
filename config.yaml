@@ -1,9 +1,18 @@
 # Configuration Sketch2CAD-Local
-# Profil par défaut ; surchargeable avec --profile (gpu8 | gpu4 | cpu | offline)
+# Profil par défaut ; surchargeable avec --profile (gpu8 | gpu4 | cpu | offline | api)
 profile: offline
 
 # Ollama doit rester local : les croquis ne quittent jamais la machine.
 ollama_host: http://localhost:11434
+
+# Profil « api » : lecture des cotes par une API GRATUITE (le solveur et la CAO restent locaux).
+# Réglable aussi dans l'interface web (bouton « API ») ou avec : python -m sketch2cad api --help
+# La clé n'est jamais écrite ici : variable d'environnement (GEMINI_API_KEY, GROQ_API_KEY,
+# OPENROUTER_API_KEY) ou fichier api_settings.json (ignoré par git).
+api:
+  provider: gemini        # gemini | groq | openrouter
+  model: ""               # vide = modèle par défaut du fournisseur
+  scope: textes           # textes = seules les zones de texte sortent du PC ; complet = image entière
 
 default_thickness: 5.0          # mm, si aucune épaisseur n'est écrite sur le croquis
 ocr_backends: [paddle, easyocr, tesseract]   # essayés dans cet ordre
@@ -27,3 +36,8 @@ profiles:
     vlm: null
     coder: null
     vlm_critic: false
+  api:       # OCR local relu par une API gratuite (Gemini, Groq ou OpenRouter)
+    vlm: null
+    coder: null
+    vlm_critic: false
+    cloud: true

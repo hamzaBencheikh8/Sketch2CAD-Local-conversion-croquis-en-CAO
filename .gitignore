@@ -3,3 +3,5 @@ __pycache__/
 *.pyc
 sortie/
 .pytest_cache/
+api_settings.json
+sortie_web/

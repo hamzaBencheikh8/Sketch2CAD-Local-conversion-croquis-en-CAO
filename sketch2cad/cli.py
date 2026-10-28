@@ -3,6 +3,8 @@
     python -m sketch2cad run croquis.jpg -o sortie/ [--profile gpu4] [--dims cotes.json]
     python -m sketch2cad solve sortie/graph.json -o sortie2/
     python -m sketch2cad doctor
+    python -m sketch2cad --profile api run croquis.jpg     # lecture des cotes par une API gratuite
+    python -m sketch2cad api --provider gemini --key VOTRE_CLE --test
 """
 from __future__ import annotations
 
@@ -21,6 +23,16 @@ def _print_report(rep: dict) -> None:
     ok = rep["status"]
     print("\n=== Sketch2CAD-Local ===")
     print(f"Profil : {rep['profile']}   graphe : {rep['graph_method']}")
+    api = rep.get("api")
+    if api:
+        if api.get("ok"):
+            ch = ", ".join(f"{c['id']} « {c['ocr']} » -> « {c['api']} »" for c in api.get("changed", []))
+            ad = ", ".join(f"{c['id']} « {c['api']} »" for c in api.get("added", []))
+            print(f"API {api['provider']} ({api['model']}, portée {api['scope']}) : "
+                  f"{len(api.get('changed', []))} cote(s) corrigée(s), {len(api.get('added', []))} ajoutée(s)"
+                  + (f"  [{ch}]" if ch else "") + (f"  [+ {ad}]" if ad else ""))
+        else:
+            print(f"API {api.get('provider')} indisponible : {api.get('error', '')[:200]}")
     if rep.get("choice"):
         print(rep["choice"]["message"])
         if rep["choice"]["type"] == "interpretation":
@@ -65,14 +77,48 @@ def _doctor(cfg: dict) -> int:
                       + ("" if cl.available(m) else f"  ->  ollama pull {m}"))
     else:
         print(f"  [--] Ollama injoignable ({cfg['ollama_host']}) : mode offline uniquement")
+    from .cloud import PROVIDERS, mask_key, resolve
+    r = resolve(cfg.get("api"))
+    print(f"  API ({PROVIDERS[r['provider']]['label']}, modèle {r['model']}, portée {r['scope']}) : "
+          + (f"clé {mask_key(r['key'])}" if r["key"] else
+             f"pas de clé -> {PROVIDERS[r['provider']]['key_url']}"))
     print(f"Profil actif : {cfg['profile']}")
+    return 0
+
+
+def _api_cmd(a, cfg: dict) -> int:
+    """Enregistre les réglages de l'API (même fichier que l'interface web) et teste la clé."""
+    from .cloud import PROVIDERS, CloudError, CloudVLM, load_settings, mask_key, resolve, save_settings
+    st = load_settings()
+    if a.provider:
+        st["provider"] = a.provider
+    if a.model is not None:
+        st["model"] = a.model
+    if a.scope:
+        st["scope"] = a.scope
+    if a.key:
+        st.setdefault("keys", {})[st["provider"]] = a.key.strip()
+    save_settings(st)
+    r = resolve(cfg.get("api"), st)
+    print(f"Fournisseur : {PROVIDERS[r['provider']]['label']}   modèle : {r['model']}   portée : {r['scope']}")
+    print(f"Clé : {mask_key(r['key']) or 'aucune -> ' + PROVIDERS[r['provider']]['key_url']}")
+    if a.test or a.list_models:
+        try:
+            cl = CloudVLM.from_settings(r)
+            if a.list_models:
+                print("Modèles : " + ", ".join(cl.list_models()))
+            if a.test:
+                print("Test : " + cl.chat(None, "Réponds seulement : OK")[:80])
+        except CloudError as exc:
+            print(f"Échec : {exc}")
+            return 1
     return 0
 
 
 def main(argv=None) -> int:
     ap = argparse.ArgumentParser(prog="sketch2cad", description="Croquis coté -> DXF/SVG/STEP/STL, 100 % local")
     ap.add_argument("--config", type=Path)
-    ap.add_argument("--profile", choices=["gpu8", "gpu4", "cpu", "offline"])
+    ap.add_argument("--profile", choices=["gpu8", "gpu4", "cpu", "offline", "api"])
     ap.add_argument("-v", "--verbose", action="store_true")
     sub = ap.add_subparsers(dest="cmd", required=True)
 
@@ -92,6 +138,14 @@ def main(argv=None) -> int:
 
     sub.add_parser("doctor", help="vérifier l'installation et les modèles")
 
+    k = sub.add_parser("api", help="régler l'API gratuite (profil api) : fournisseur, modèle, clé")
+    k.add_argument("--provider", choices=["gemini", "groq", "openrouter"])
+    k.add_argument("--model")
+    k.add_argument("--key")
+    k.add_argument("--scope", choices=["textes", "complet"])
+    k.add_argument("--test", action="store_true", help="envoyer une requête de test")
+    k.add_argument("--list-models", action="store_true")
+
     w = sub.add_parser("web", help="interface web de test (http://127.0.0.1:8765)")
     w.add_argument("--port", type=int, default=8765)
     w.add_argument("--no-browser", action="store_true")
@@ -102,6 +156,8 @@ def main(argv=None) -> int:
     cfg = load_config(a.config, a.profile)
     if a.cmd == "doctor":
         return _doctor(cfg)
+    if a.cmd == "api":
+        return _api_cmd(a, cfg)
     if a.cmd == "web":
         from .webapp import serve
         serve(port=a.port, open_browser=not a.no_browser, config_path=a.config)

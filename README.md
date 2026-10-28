@@ -1,6 +1,6 @@
 # Sketch2CAD-Local
 
-Photo d'un croquis mécanique coté à la main → plan 2D (`.dxf`, `.svg`) et solide 3D (`.step`, `.stl`), **100 % en local**.
+Photo d'un croquis mécanique coté à la main → plan 2D (`.dxf`, `.svg`) et solide 3D (`.step`, `.stl`), **100 % en local** par défaut — avec, en option, une lecture des cotes par une **API gratuite** (Gemini, Groq ou OpenRouter).
 
 Les cotes manuscrites font foi : le croquis peut être complètement hors échelle, le solveur de contraintes recalcule la géométrie exacte au millimètre.
 
@@ -56,6 +56,43 @@ python -m sketch2cad --profile gpu4 doctor                               # véri
 | `gpu4`    | GPU 4–8 Go            | qwen2.5vl:3b    | qwen2.5-coder:3b   |
 | `cpu`     | CPU, ≥ 16 Go RAM      | qwen2.5vl:3b    | gabarit seul       |
 | `offline` | n'importe quel PC     | aucun           | gabarit seul       |
+| `api`     | n'importe quel PC + Internet | API gratuite (lecture des cotes) | gabarit seul |
+
+## Profil « api » : lecture des cotes par une API gratuite
+
+L'écriture manuscrite est le point faible de l'OCR local. Le profil `api` fait relire les cotes par
+un grand modèle de vision **gratuit** ; le solveur, la critique et la CAO restent locaux et exacts.
+
+| Fournisseur | Clé gratuite | Modèle par défaut |
+|---|---|---|
+| Google Gemini | https://aistudio.google.com/apikey | `gemini-2.5-flash` |
+| Groq | https://console.groq.com/keys | `qwen/qwen3.8-27b` |
+| OpenRouter | https://openrouter.ai/keys | `openrouter/free` (routeur vers les modèles gratuits) |
+
+Les modèles proposés changent souvent : le bouton **Lister** de l'interface (ou `api --list-models`) donne la liste à jour.
+
+**Dans l'interface web** : « Lecture des cotes » → **API gratuite**, choisir le fournisseur, coller la clé,
+**Enregistrer** (la connexion est testée), puis **Lancer**. Deux portées :
+
+- **Zones de texte seulement** (par défaut) : seules les petites zones de texte (« 150 », « R10 »…) sont
+  envoyées, rassemblées dans une seule image ; **le dessin de la pièce ne quitte pas le PC** ;
+- **Image entière** : meilleure lecture, l'API retrouve aussi les cotes oubliées par l'OCR et rattache les cotes aux éléments.
+
+**En ligne de commande** :
+
+```
+python -m sketch2cad api --provider gemini --key VOTRE_CLE --test
+python -m sketch2cad --profile api run croquis.jpg -o sortie\piece1
+```
+
+La clé est enregistrée dans `api_settings.json` (sur ce PC, ignoré par git) ou lue dans la variable
+d'environnement `GEMINI_API_KEY`, `GROQ_API_KEY` ou `OPENROUTER_API_KEY`. Une seule requête par croquis
+(portée « textes »), ce qui tient largement dans les quotas gratuits. Sans clé, sans réseau ou quota
+épuisé : avertissement, et l'OCR local prend le relais. Les cotes relues sont marquées **API** dans
+l'onglet Textes, et le rapport détaille chaque correction (`report.json` → `api`).
+
+> Les offres gratuites peuvent utiliser les données envoyées pour améliorer les modèles du fournisseur :
+> pour des plans confidentiels, restez en mode **Local** ou en portée « zones de texte ».
 
 ## Fichiers produits (dans le dossier de sortie)
 
@@ -67,7 +104,8 @@ python -m sketch2cad --profile gpu4 doctor                               # véri
 | `som.png`          | croquis annoté V*/E*/C*/T* : à regarder en premier en cas de doute |
 | `comparison.png`   | croquis original à côté du profil reconstruit |
 | `graph.json`       | graphe de contraintes, **éditable** puis rejouable avec `solve` |
-| `report.json`      | résidus, degrés de liberté, conflits, corrections de l'agent critique |
+| `report.json`      | résidus, degrés de liberté, conflits, corrections de l'agent critique, lecture API |
+| `api_read.json`    | (profil api) ce qui a été envoyé et chaque cote corrigée ou ajoutée par l'API |
 
 ## Bien dessiner pour la machine
 
