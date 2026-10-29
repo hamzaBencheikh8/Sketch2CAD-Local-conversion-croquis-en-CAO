@@ -219,7 +219,7 @@ def draw_capsule(sh: Sheet, c, D_px, Hc_px, r_txt, h_txt, d_txt):
     sh.line((cx + a + 12, top), (x + 14, top))
     sh.line((cx + a + 12, bot), (x + 14, bot))
     sh.arrow_dim((x, top), (x, bot))
-    sh.text(h_txt, (x + 55, (top + bot) / 2))
+    sh.text(h_txt, (x + 30 + 14 * len(h_txt), (top + bot) / 2))
     sh.line((cx, top), (cx + a * 0.62, top + a * 0.78))
     sh.text(r_txt, (cx + a * 0.95, top + a * 1.15))
     sh.text(d_txt, (cx, bot - b - 45))
