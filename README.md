@@ -123,6 +123,18 @@ l'onglet Textes, et le rapport détaille chaque correction (`report.json` → `a
 
 Pour court-circuiter l'OCR, on peut aussi fournir les cotes à la main : `run croquis.jpg --dims cotes.json` (format : voir `examples/dims.json`).
 
+## Croquis de test (avec corrigé)
+
+Le dossier `croquis_test/` contient 14 croquis « à main levée », hors échelle, avec leur résultat attendu :
+plaques (rectangle, L, congés, angle, cotes en cm), cylindre, gélule, tronc de cône, cercle seul,
+feuille à 3 dessins, dessin ouvert, photo en biais, petite capture d'écran, croquis à un seul stylo.
+
+- `croquis_test/corrige.html` : chaque croquis, ce qu'il teste et les valeurs attendues ;
+- `croquis_test/croquis_a_imprimer.pdf` : à imprimer puis photographier, pour tester une vraie photo ;
+- `python tools\bench_test_set.py croquis_test` (ajouter `--profile api` pour comparer) : passe tout
+  le jeu, affiche le score et écrit `croquis_test/resultats.html` ;
+- `python tools\make_test_set.py croquis_test` : régénère les croquis.
+
 ## Tests
 
 ```

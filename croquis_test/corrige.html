@@ -1,0 +1,52 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Croquis de test — corrigé</title><style>:root{--bg:#f6f5f0;--card:#fff;--ink:#1b2430;--mut:#5f6b78;--line:#dcd8cc;--acc:#1f5fbf;--ok:#1d7a46;--bad:#b3261e;--warn:#9a6200}
+@media (prefers-color-scheme:dark){:root{--bg:#12161c;--card:#1a2029;--ink:#e6e9ee;--mut:#9aa5b1;--line:#2c3440;--acc:#6aa0ff;--ok:#5fd18f;--bad:#ff8a80;--warn:#f0b54a}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:24px 16px}h1{font-size:24px;margin:0 0 6px}p.lead{color:var(--mut);margin:0 0 20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.c{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.c img{width:100%;aspect-ratio:4/3;object-fit:contain;background:#fafafa;border-bottom:1px solid var(--line)}
+.c .b{padding:12px 14px}.c h2{font-size:15px;margin:0 0 4px}.c .w{color:var(--mut);font-size:13px;margin:0 0 8px}
+dl{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:0;font-size:13px}dt{color:var(--mut)}dd{margin:0;font-family:ui-monospace,Consolas,monospace}
+.r{margin-top:8px;font-size:13px;padding:6px 8px;border-radius:6px;border:1px solid var(--line)}
+.r.ok{color:var(--ok)}.r.bad{color:var(--bad)}.r.part{color:var(--warn)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:var(--card)}td,th{border:1px solid var(--line);padding:6px 8px;text-align:left}
+.steps{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 18px;margin-bottom:20px}
+a{color:var(--acc)}</style></head><body><main>
+<h1>Croquis de test — corrigé</h1>
+<p class="lead">Croquis volontairement hors échelle : seules les cotes écrites comptent. Comparez le résultat du programme
+(onglet 3D, encombrement, rapport) aux valeurs attendues.</p>
+<div class="steps"><b>Comment tester</b><ol>
+<li>Lancez <code>web.bat</code>, déposez un croquis, cliquez <b>Lancer</b> (mode Local, puis refaites en mode API pour comparer).</li>
+<li>Comparez l'encombrement affiché et les perçages avec la carte du croquis ci-dessous.</li>
+<li>Pour tester une vraie photo : imprimez <a href="croquis_a_imprimer.pdf">croquis_a_imprimer.pdf</a>, photographiez une page avec votre téléphone.</li>
+<li>Tout d'un coup : <code>python tools\bench_test_set.py croquis_test</code> produit <code>resultats.html</code>.</li></ol></div>
+<div class="grid"><div class="c"><a href="01_plaque_rectangle.png"><img src="01_plaque_rectangle.png" alt="01_plaque_rectangle.png" loading="lazy"></a>
+<div class="b"><h2>01_plaque_rectangle.png</h2><p class="w">Rectangle simple, un perçage au centre. Le croquis est volontairement trop étroit en hauteur.</p>
+<dl><dt>Forme</dt><dd>pièce plate</dd><dt>Encombrement</dt><dd>120 × 80 × 10 mm</dd><dt>Perçages</dt><dd>Ø20</dd><dt>Volume</dt><dd>92 858 mm³</dd></dl></div></div><div class="c"><a href="02_plaque_en_L.png"><img src="02_plaque_en_L.png" alt="02_plaque_en_L.png" loading="lazy"></a>
+<div class="b"><h2>02_plaque_en_L.png</h2><p class="w">Équerre en L, 6 sommets, angles droits non cotés (déduits).</p>
+<dl><dt>Forme</dt><dd>pièce plate</dd><dt>Encombrement</dt><dd>100 × 70 × 6 mm</dd><dt>Sommets</dt><dd>6</dd><dt>Perçages</dt><dd>Ø8</dd><dt>Volume</dt><dd>27 298 mm³</dd></dl></div></div><div class="c"><a href="03_plaque_conges.png"><img src="03_plaque_conges.png" alt="03_plaque_conges.png" loading="lazy"></a>
+<div class="b"><h2>03_plaque_conges.png</h2><p class="w">Deux congés R15, deux perçages Ø12.</p>
+<dl><dt>Forme</dt><dd>pièce plate</dd><dt>Encombrement</dt><dd>140 × 90 × 5 mm</dd><dt>Perçages</dt><dd>Ø12, Ø12</dd><dt>Congés</dt><dd>R15, R15</dd><dt>Volume</dt><dd>61 386 mm³</dd></dl></div></div><div class="c"><a href="04_plaque_angle.png"><img src="04_plaque_angle.png" alt="04_plaque_angle.png" loading="lazy"></a>
+<div class="b"><h2>04_plaque_angle.png</h2><p class="w">Trapèze : un côté incliné coté par sa longueur (60) et l&#x27;angle (60°).</p>
+<dl><dt>Forme</dt><dd>pièce plate</dd><dt>Encombrement</dt><dd>120 × 51.962 × 8 mm</dd><dt>Sommets</dt><dd>4</dd><dt>Perçages</dt><dd>Ø10</dd><dt>Volume</dt><dd>43 020 mm³</dd></dl></div></div><div class="c"><a href="05_plaque_en_cm.png"><img src="05_plaque_en_cm.png" alt="05_plaque_en_cm.png" loading="lazy"></a>
+<div class="b"><h2>05_plaque_en_cm.png</h2><p class="w">Cotes en centimètres : le résultat doit sortir en millimètres.</p>
+<dl><dt>Forme</dt><dd>pièce plate</dd><dt>Encombrement</dt><dd>120 × 80 × 10 mm</dd><dt>Perçages</dt><dd>Ø20, Ø20</dd><dt>Volume</dt><dd>89 717 mm³</dd></dl></div></div><div class="c"><a href="06_cylindre.png"><img src="06_cylindre.png" alt="06_cylindre.png" loading="lazy"></a>
+<div class="b"><h2>06_cylindre.png</h2><p class="w">Cylindre en perspective : Ø40 dans la base, hauteur 60 à droite.</p>
+<dl><dt>Forme</dt><dd>cylindre</dd><dt>Encombrement</dt><dd>40 × 40 × 60 mm</dd><dt>Volume</dt><dd>75 398 mm³</dd></dl></div></div><div class="c"><a href="07_gelule.png"><img src="07_gelule.png" alt="07_gelule.png" loading="lazy"></a>
+<div class="b"><h2>07_gelule.png</h2><p class="w">Gélule : base Ø40, flanc 60, dôme R20 (hauteur totale 80).</p>
+<dl><dt>Forme</dt><dd>corps de révolution</dd><dt>Encombrement</dt><dd>40 × 40 × 80 mm</dd><dt>Volume</dt><dd>92 153 mm³</dd></dl></div></div><div class="c"><a href="08_tronc_de_cone.png"><img src="08_tronc_de_cone.png" alt="08_tronc_de_cone.png" loading="lazy"></a>
+<div class="b"><h2>08_tronc_de_cone.png</h2><p class="w">Tronc de cône : Ø60 en bas, Ø30 en haut, hauteur 50.</p>
+<dl><dt>Forme</dt><dd>corps de révolution</dd><dt>Encombrement</dt><dd>60 × 60 × 50 mm</dd><dt>Volume</dt><dd>82 467 mm³</dd></dl></div></div><div class="c"><a href="09_cercle.png"><img src="09_cercle.png" alt="09_cercle.png" loading="lazy"></a>
+<div class="b"><h2>09_cercle.png</h2><p class="w">Cercle seul : l&#x27;interface doit demander « sphère ou disque ? ».</p>
+<dl><dt>Forme</dt><dd>choix demandé : sphère ou disque</dd><dt>Encombrement</dt><dd>50 × 50 × 50 mm</dd><dt>Note</dt><dd>sphère Ø50, ou disque Ø50 × 5 (épaisseur par défaut)</dd></dl></div></div><div class="c"><a href="10_feuille_3_dessins.png"><img src="10_feuille_3_dessins.png" alt="10_feuille_3_dessins.png" loading="lazy"></a>
+<div class="b"><h2>10_feuille_3_dessins.png</h2><p class="w">Trois dessins sur la même feuille : l&#x27;interface doit demander lequel traiter.</p>
+<dl><dt>Forme</dt><dd>choix demandé : 3 dessins</dd><dt>Encombrement</dt><dd>—</dd><dt>Note</dt><dd>dessin plaque 80×50×4 + Ø10 ; cylindre Ø30 × 45 ; cercle Ø40</dd></dl></div></div><div class="c"><a href="11_dessin_ouvert.png"><img src="11_dessin_ouvert.png" alt="11_dessin_ouvert.png" loading="lazy"></a>
+<div class="b"><h2>11_dessin_ouvert.png</h2><p class="w">Un « V » non fermé : le programme doit refuser proprement.</p>
+<dl><dt>Forme</dt><dd>dessin ouvert (pas de solide)</dd><dt>Encombrement</dt><dd>—</dd></dl></div></div><div class="c"><a href="12_photo_en_biais.jpg"><img src="12_photo_en_biais.jpg" alt="12_photo_en_biais.jpg" loading="lazy"></a>
+<div class="b"><h2>12_photo_en_biais.jpg</h2><p class="w">Le croquis 02 photographié en biais sur une table, avec ombre et éclairage inégal.</p>
+<dl><dt>Forme</dt><dd>pièce plate</dd><dt>Encombrement</dt><dd>100 × 70 × 6 mm</dd><dt>Sommets</dt><dd>6</dd><dt>Perçages</dt><dd>Ø8</dd><dt>Volume</dt><dd>27 298 mm³</dd></dl></div></div><div class="c"><a href="13_capture_basse_resolution.png"><img src="13_capture_basse_resolution.png" alt="13_capture_basse_resolution.png" loading="lazy"></a>
+<div class="b"><h2>13_capture_basse_resolution.png</h2><p class="w">Le croquis 03 en petite capture d&#x27;écran (480 px de large).</p>
+<dl><dt>Forme</dt><dd>pièce plate</dd><dt>Encombrement</dt><dd>140 × 90 × 5 mm</dd><dt>Perçages</dt><dd>Ø12, Ø12</dd><dt>Congés</dt><dd>R15, R15</dd></dl></div></div><div class="c"><a href="14_un_seul_stylo.png"><img src="14_un_seul_stylo.png" alt="14_un_seul_stylo.png" loading="lazy"></a>
+<div class="b"><h2>14_un_seul_stylo.png</h2><p class="w">Contour et cotation au même stylo : séparation contour / cotes plus difficile.</p>
+<dl><dt>Forme</dt><dd>pièce plate</dd><dt>Encombrement</dt><dd>100 × 60 × 4 mm</dd><dt>Perçages</dt><dd>Ø16</dd><dt>Volume</dt><dd>23 196 mm³</dd></dl></div></div></div></main></body></html>

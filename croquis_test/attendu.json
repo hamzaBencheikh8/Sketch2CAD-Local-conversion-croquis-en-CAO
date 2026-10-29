@@ -1,0 +1,196 @@
+[
+  {
+    "file": "01_plaque_rectangle.png",
+    "code": "prism",
+    "what": "Rectangle simple, un perçage au centre. Le croquis est volontairement trop étroit en hauteur.",
+    "shape": "pièce plate",
+    "size": [
+      120,
+      80,
+      10
+    ],
+    "holes": [
+      "Ø20"
+    ],
+    "volume_mm3": 92858.40734641021
+  },
+  {
+    "file": "02_plaque_en_L.png",
+    "code": "prism",
+    "what": "Équerre en L, 6 sommets, angles droits non cotés (déduits).",
+    "shape": "pièce plate",
+    "size": [
+      100,
+      70,
+      6
+    ],
+    "vertices": 6,
+    "holes": [
+      "Ø8"
+    ],
+    "volume_mm3": 27298.40710525538
+  },
+  {
+    "file": "03_plaque_conges.png",
+    "code": "prism",
+    "what": "Deux congés R15, deux perçages Ø12.",
+    "shape": "pièce plate",
+    "size": [
+      140,
+      90,
+      5
+    ],
+    "holes": [
+      "Ø12",
+      "Ø12"
+    ],
+    "fillets": [
+      "R15",
+      "R15"
+    ],
+    "volume_mm3": 61386.17251235193
+  },
+  {
+    "file": "04_plaque_angle.png",
+    "code": "prism",
+    "what": "Trapèze : un côté incliné coté par sa longueur (60) et l'angle (60°).",
+    "shape": "pièce plate",
+    "size": [
+      120,
+      51.962,
+      8
+    ],
+    "vertices": 4,
+    "holes": [
+      "Ø10"
+    ],
+    "volume_mm3": 43019.76146928204
+  },
+  {
+    "file": "05_plaque_en_cm.png",
+    "code": "prism",
+    "what": "Cotes en centimètres : le résultat doit sortir en millimètres.",
+    "shape": "pièce plate",
+    "size": [
+      120,
+      80,
+      10
+    ],
+    "holes": [
+      "Ø20",
+      "Ø20"
+    ],
+    "volume_mm3": 89716.81469282041
+  },
+  {
+    "file": "06_cylindre.png",
+    "code": "cylinder",
+    "what": "Cylindre en perspective : Ø40 dans la base, hauteur 60 à droite.",
+    "shape": "cylindre",
+    "size": [
+      40,
+      40,
+      60
+    ],
+    "volume_mm3": 75398.22368615503
+  },
+  {
+    "file": "07_gelule.png",
+    "code": "revolution",
+    "what": "Gélule : base Ø40, flanc 60, dôme R20 (hauteur totale 80).",
+    "shape": "corps de révolution",
+    "size": [
+      40,
+      40,
+      80
+    ],
+    "volume_mm3": 92153.3845053006
+  },
+  {
+    "file": "08_tronc_de_cone.png",
+    "code": "revolution",
+    "what": "Tronc de cône : Ø60 en bas, Ø30 en haut, hauteur 50.",
+    "shape": "corps de révolution",
+    "size": [
+      60,
+      60,
+      50
+    ],
+    "volume_mm3": 82466.80715673207
+  },
+  {
+    "file": "09_cercle.png",
+    "code": "choice_interpretation",
+    "what": "Cercle seul : l'interface doit demander « sphère ou disque ? ».",
+    "shape": "choix demandé : sphère ou disque",
+    "size": [
+      50,
+      50,
+      50
+    ],
+    "note": "sphère Ø50, ou disque Ø50 × 5 (épaisseur par défaut)"
+  },
+  {
+    "file": "10_feuille_3_dessins.png",
+    "code": "choice_drawing",
+    "what": "Trois dessins sur la même feuille : l'interface doit demander lequel traiter.",
+    "shape": "choix demandé : 3 dessins",
+    "note": "dessin plaque 80×50×4 + Ø10 ; cylindre Ø30 × 45 ; cercle Ø40"
+  },
+  {
+    "file": "11_dessin_ouvert.png",
+    "code": "open",
+    "what": "Un « V » non fermé : le programme doit refuser proprement.",
+    "shape": "dessin ouvert (pas de solide)"
+  },
+  {
+    "file": "12_photo_en_biais.jpg",
+    "code": "prism",
+    "what": "Le croquis 02 photographié en biais sur une table, avec ombre et éclairage inégal.",
+    "shape": "pièce plate",
+    "size": [
+      100,
+      70,
+      6
+    ],
+    "vertices": 6,
+    "holes": [
+      "Ø8"
+    ],
+    "volume_mm3": 27298.40710525538
+  },
+  {
+    "file": "13_capture_basse_resolution.png",
+    "code": "prism",
+    "what": "Le croquis 03 en petite capture d'écran (480 px de large).",
+    "shape": "pièce plate",
+    "size": [
+      140,
+      90,
+      5
+    ],
+    "holes": [
+      "Ø12",
+      "Ø12"
+    ],
+    "fillets": [
+      "R15",
+      "R15"
+    ]
+  },
+  {
+    "file": "14_un_seul_stylo.png",
+    "code": "prism",
+    "what": "Contour et cotation au même stylo : séparation contour / cotes plus difficile.",
+    "shape": "pièce plate",
+    "size": [
+      100,
+      60,
+      4
+    ],
+    "holes": [
+      "Ø16"
+    ],
+    "volume_mm3": 23195.752280681012
+  }
+]
