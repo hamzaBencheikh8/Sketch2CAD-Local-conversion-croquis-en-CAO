@@ -1,0 +1,97 @@
+{
+  "profile": "offline",
+  "score": "11/15",
+  "date": "2026-10-29 15:40",
+  "results": {
+    "V01_standard.png": {
+      "cls": "ok",
+      "label": "✓ 1000 × 1000 × 1767.95 mm ; 1 ouverture(s), 2 piquage(s), 4 pied(s)",
+      "status": "OK avec avertissements",
+      "seconds": 27.9
+    },
+    "V02_hemispherique_ep8.png": {
+      "cls": "ok",
+      "label": "✓ 800 × 800 × 2000 mm ; 0 ouverture(s), 2 piquage(s), 0 pied(s)",
+      "status": "OK avec avertissements",
+      "seconds": 17.3
+    },
+    "V03_grande_3_piquages.png": {
+      "cls": "bad",
+      "label": "✗ forme cylinder ; obtenu 3000 × 3000 × 1500 mm ; 0 ouverture(s), 0 piquage(s), 0 pied(s)",
+      "status": "À VÉRIFIER (voir report.json)",
+      "seconds": 17.7
+    },
+    "V04_petite_cote_gauche.png": {
+      "cls": "ok",
+      "label": "✓ 600 × 600 × 1060.77 mm ; 0 ouverture(s), 1 piquage(s), 4 pied(s)",
+      "status": "OK avec avertissements",
+      "seconds": 17.4
+    },
+    "V05_unites_cm.png": {
+      "cls": "ok",
+      "label": "✓ 1200 × 1200 × 1921.54 mm ; 1 ouverture(s), 1 piquage(s), 4 pied(s)",
+      "status": "OK avec avertissements",
+      "seconds": 18.4
+    },
+    "V06_unites_m.png": {
+      "cls": "ok",
+      "label": "✓ 1400 × 1400 × 2575.13 mm ; 2 ouverture(s), 3 piquage(s), 4 pied(s)",
+      "status": "OK avec avertissements",
+      "seconds": 18.1
+    },
+    "V07_deux_rayons.png": {
+      "cls": "ok",
+      "label": "✓ 1000 × 1000 × 1954.12 mm ; 1 ouverture(s), 1 piquage(s), 0 pied(s)",
+      "status": "OK avec avertissements",
+      "seconds": 17.8
+    },
+    "V08_trapue.png": {
+      "cls": "bad",
+      "label": "✗ forme plate ; obtenu 1545.01 × 1709.31 × 5 mm ; 0 ouverture(s), 0 piquage(s), 0 pied(s)",
+      "status": "À VÉRIFIER (voir report.json)",
+      "seconds": 17.7
+    },
+    "V09_elancee.png": {
+      "cls": "ok",
+      "label": "✓ 500 × 500 × 2633.97 mm ; 1 ouverture(s), 2 piquage(s), 4 pied(s)",
+      "status": "OK avec avertissements",
+      "seconds": 17.5
+    },
+    "V10_complete_ep10.png": {
+      "cls": "ok",
+      "label": "✓ 1200 × 1200 × 2121.54 mm ; 1 ouverture(s), 3 piquage(s), 4 pied(s)",
+      "status": "OK avec avertissements",
+      "seconds": 18.1
+    },
+    "V11_photo_en_biais.jpg": {
+      "cls": "ok",
+      "label": "✓ 2000 × 2000 × 2935.9 mm ; 1 ouverture(s), 2 piquage(s), 4 pied(s)",
+      "status": "OK avec avertissements",
+      "seconds": 17.2
+    },
+    "V12_photo_sombre.jpg": {
+      "cls": "ok",
+      "label": "✓ 900 × 900 × 2200 mm ; 1 ouverture(s), 1 piquage(s), 0 pied(s)",
+      "status": "OK avec avertissements",
+      "seconds": 21.6
+    },
+    "V13_capture_basse_res.png": {
+      "cls": "ok",
+      "label": "✓ 1100 × 1100 × 1894.74 mm ; 1 ouverture(s), 2 piquage(s), 4 pied(s)",
+      "status": "OK avec avertissements",
+      "seconds": 9.7
+    },
+    "V14_un_seul_stylo.png": {
+      "cls": "bad",
+      "label": "✗ forme cylinder ; obtenu 2600 × 2600 × 1300 mm ; 0 ouverture(s), 0 piquage(s), 0 pied(s)",
+      "status": "À VÉRIFIER (voir report.json)",
+      "seconds": 18.1
+    },
+    "V15_feuille_tournee.png": {
+      "cls": "bad",
+      "label": "✗ forme plate ; obtenu 1023.81 × 2028.67 × 5 mm ; 0 ouverture(s), 0 piquage(s), 0 pied(s)",
+      "status": "À VÉRIFIER (voir report.json)",
+      "seconds": 18.1
+    }
+  }
+}

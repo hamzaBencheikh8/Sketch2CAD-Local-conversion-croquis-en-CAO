@@ -1,0 +1,227 @@
+[
+  {
+    "file": "V01_standard.png",
+    "code": "vessel",
+    "what": "Enceinte standard : trou d'homme à bride, 2 piquages, pieds.",
+    "shape": "réservoir",
+    "size": [
+      1000,
+      1000,
+      1767.949
+    ],
+    "openings": 1,
+    "nozzles": 2,
+    "legs": true,
+    "note": "corps Ø1000 × 1500, fonds R1000 / R1000"
+  },
+  {
+    "file": "V02_hemispherique_ep8.png",
+    "code": "vessel",
+    "what": "Fonds hémisphériques, paroi cotée ep 8, piquage haut et vidange.",
+    "shape": "réservoir",
+    "size": [
+      800,
+      800,
+      2000.0
+    ],
+    "openings": 0,
+    "nozzles": 2,
+    "legs": false,
+    "note": "corps Ø800 × 1200, fonds R400 / R400, paroi 8 mm"
+  },
+  {
+    "file": "V03_grande_3_piquages.png",
+    "code": "vessel",
+    "what": "Grande enceinte : trou d'homme + petit piquage radial, 3 piquages, pieds.",
+    "shape": "réservoir",
+    "size": [
+      1500,
+      1500,
+      2401.924
+    ],
+    "openings": 2,
+    "nozzles": 3,
+    "legs": true,
+    "note": "corps Ø1500 × 2000, fonds R1500 / R1500"
+  },
+  {
+    "file": "V04_petite_cote_gauche.png",
+    "code": "vessel",
+    "what": "Petite enceinte, hauteur cotée à gauche, un piquage, pieds.",
+    "shape": "réservoir",
+    "size": [
+      600,
+      600,
+      1060.77
+    ],
+    "openings": 0,
+    "nozzles": 1,
+    "legs": true,
+    "note": "corps Ø600 × 900, fonds R600 / R600"
+  },
+  {
+    "file": "V05_unites_cm.png",
+    "code": "vessel",
+    "what": "Cotes en centimètres (Ø120 cm, 160 cm, R120 cm).",
+    "shape": "réservoir",
+    "size": [
+      1200,
+      1200,
+      1921.539
+    ],
+    "openings": 1,
+    "nozzles": 1,
+    "legs": true,
+    "note": "corps Ø1200 × 1600, fonds R1200 / R1200"
+  },
+  {
+    "file": "V06_unites_m.png",
+    "code": "vessel",
+    "what": "Cotes en mètres (Ø1,4 m, 2,2 m, R1,4 m), deux ouvertures simples, vidange.",
+    "shape": "réservoir",
+    "size": [
+      1400,
+      1400,
+      2575.129
+    ],
+    "openings": 2,
+    "nozzles": 3,
+    "legs": true,
+    "note": "corps Ø1400 × 2200, fonds R1400 / R1400"
+  },
+  {
+    "file": "V07_deux_rayons.png",
+    "code": "vessel",
+    "what": "Deux fonds différents : R1500 en haut, R600 en bas.",
+    "shape": "réservoir",
+    "size": [
+      1000,
+      1000,
+      1954.124
+    ],
+    "openings": 1,
+    "nozzles": 1,
+    "legs": false,
+    "note": "corps Ø1000 × 1600, fonds R1500 / R600"
+  },
+  {
+    "file": "V08_trapue.png",
+    "code": "vessel",
+    "what": "Enceinte trapue (H < D), 2 piquages, trou d'homme, pieds.",
+    "shape": "réservoir",
+    "size": [
+      1600,
+      1600,
+      1628.719
+    ],
+    "openings": 1,
+    "nozzles": 2,
+    "legs": true,
+    "note": "corps Ø1600 × 1200, fonds R1600 / R1600"
+  },
+  {
+    "file": "V09_elancee.png",
+    "code": "vessel",
+    "what": "Colonne élancée (H = 5 × D), piquages haut et bas, petite ouverture, pieds.",
+    "shape": "réservoir",
+    "size": [
+      500,
+      500,
+      2633.975
+    ],
+    "openings": 1,
+    "nozzles": 2,
+    "legs": true,
+    "note": "corps Ø500 × 2500, fonds R500 / R500"
+  },
+  {
+    "file": "V10_complete_ep10.png",
+    "code": "vessel",
+    "what": "Enceinte complète : ep 10, bride, 2 piquages haut, vidange, pieds.",
+    "shape": "réservoir",
+    "size": [
+      1200,
+      1200,
+      2121.539
+    ],
+    "openings": 1,
+    "nozzles": 3,
+    "legs": true,
+    "note": "corps Ø1200 × 1800, fonds R1200 / R1200, paroi 10 mm"
+  },
+  {
+    "file": "V11_photo_en_biais.jpg",
+    "code": "vessel",
+    "what": "Photo en biais sur une table (ombre, éclairage inégal).",
+    "shape": "réservoir",
+    "size": [
+      2000,
+      2000,
+      2935.898
+    ],
+    "openings": 1,
+    "nozzles": 2,
+    "legs": true,
+    "note": "corps Ø2000 × 2400, fonds R2000 / R2000"
+  },
+  {
+    "file": "V12_photo_sombre.jpg",
+    "code": "vessel",
+    "what": "Deuxième photo, cadrage et lumière différents, fonds hémisphériques.",
+    "shape": "réservoir",
+    "size": [
+      900,
+      900,
+      2200.0
+    ],
+    "openings": 1,
+    "nozzles": 1,
+    "legs": false,
+    "note": "corps Ø900 × 1300, fonds R450 / R450"
+  },
+  {
+    "file": "V13_capture_basse_res.png",
+    "code": "vessel",
+    "what": "Capture d'écran de 480 px de large.",
+    "shape": "réservoir",
+    "size": [
+      1100,
+      1100,
+      1894.744
+    ],
+    "openings": 1,
+    "nozzles": 2,
+    "legs": true,
+    "note": "corps Ø1100 × 1600, fonds R1100 / R1100"
+  },
+  {
+    "file": "V14_un_seul_stylo.png",
+    "code": "vessel",
+    "what": "Contour et cotation au même stylo.",
+    "shape": "réservoir",
+    "size": [
+      1300,
+      1300,
+      2048.334
+    ],
+    "openings": 1,
+    "nozzles": 1,
+    "legs": true,
+    "note": "corps Ø1300 × 1700, fonds R1300 / R1300"
+  },
+  {
+    "file": "V15_feuille_tournee.png",
+    "code": "vessel",
+    "what": "Feuille tournée de 4°, hauteur cotée à gauche.",
+    "shape": "réservoir",
+    "size": [
+      700,
+      700,
+      1187.564
+    ],
+    "openings": 1,
+    "nozzles": 1,
+    "legs": true,
+    "note": "corps Ø700 × 1000, fonds R700 / R700"
+  }
+]

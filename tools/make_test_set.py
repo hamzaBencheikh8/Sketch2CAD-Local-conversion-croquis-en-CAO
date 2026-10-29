@@ -287,6 +287,10 @@ def draw_vessel(sh: Sheet, v: dict) -> None:
         xr = cx + 0.7 * a
         sh.line((xr, head_t(xr)), (cx + a + 40, yt + v["kt"] * a + 60))
         sh.text(v["R"], (cx + a + 40 + 14 * len(v["R"]), yt + v["kt"] * a + 70))
+    if v.get("R_bot"):
+        xr = cx - 0.7 * a
+        sh.line((xr, head_b(xr)), (cx - a - 40, yb - v["kb"] * a - 60))
+        sh.text(v["R_bot"], (cx - a - 40 - 14 * len(v["R_bot"]), yb - v["kb"] * a - 80))
     if v.get("ep"):
         sh.text(v["ep"], (max(120, cx - a - 140), max(80, yb - v["kb"] * a - 60)))
 

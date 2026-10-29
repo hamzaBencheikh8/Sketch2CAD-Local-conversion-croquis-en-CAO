@@ -1,0 +1,54 @@
+<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Enceintes sous pression — 15 croquis de test</title><style>:root{--bg:#f6f5f0;--card:#fff;--ink:#1b2430;--mut:#5f6b78;--line:#dcd8cc;--acc:#1f5fbf;--ok:#1d7a46;--bad:#b3261e;--warn:#9a6200}
+@media (prefers-color-scheme:dark){:root{--bg:#12161c;--card:#1a2029;--ink:#e6e9ee;--mut:#9aa5b1;--line:#2c3440;--acc:#6aa0ff;--ok:#5fd18f;--bad:#ff8a80;--warn:#f0b54a}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.5 "Segoe UI",system-ui,sans-serif}
+main{max-width:1100px;margin:0 auto;padding:24px 16px}h1{font-size:24px;margin:0 0 6px}p.lead{color:var(--mut);margin:0 0 20px}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:14px}
+.c{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:hidden}
+.c img{width:100%;aspect-ratio:4/3;object-fit:contain;background:#fafafa;border-bottom:1px solid var(--line)}
+.c .b{padding:12px 14px}.c h2{font-size:15px;margin:0 0 4px}.c .w{color:var(--mut);font-size:13px;margin:0 0 8px}
+dl{display:grid;grid-template-columns:auto 1fr;gap:2px 10px;margin:0;font-size:13px}dt{color:var(--mut)}dd{margin:0;font-family:ui-monospace,Consolas,monospace}
+.r{margin-top:8px;font-size:13px;padding:6px 8px;border-radius:6px;border:1px solid var(--line)}
+.r.ok{color:var(--ok)}.r.bad{color:var(--bad)}.r.part{color:var(--warn)}
+table{border-collapse:collapse;width:100%;font-size:14px;background:var(--card)}td,th{border:1px solid var(--line);padding:6px 8px;text-align:left}
+.steps{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:12px 18px;margin-bottom:20px}
+a{color:var(--acc)}</style></head><body><main>
+<h1>Enceintes sous pression — 15 croquis de test</h1>
+<p class="lead">Croquis volontairement hors échelle : seules les cotes écrites comptent. Comparez le résultat du programme
+(onglet 3D, encombrement, rapport) aux valeurs attendues.</p>
+<div class="steps"><b>Comment tester</b><ol>
+<li>Lancez <code>web.bat</code>, déposez un croquis, cliquez <b>Lancer</b> (mode Local, puis refaites en mode API pour comparer).</li>
+<li>Comparez l'encombrement affiché et les perçages avec la carte du croquis ci-dessous.</li>
+<li>Pour tester une vraie photo : imprimez <a href="croquis_a_imprimer.pdf">croquis_a_imprimer.pdf</a>, photographiez une page avec votre téléphone.</li>
+<li>Tout d'un coup : <code>python tools\bench_test_set.py croquis_test</code> produit <code>resultats.html</code>.</li></ol></div>
+<div class="grid"><div class="c"><a href="V01_standard.png"><img src="V01_standard.png" alt="V01_standard.png" loading="lazy"></a>
+<div class="b"><h2>V01_standard.png</h2><p class="w">Enceinte standard : trou d&#x27;homme à bride, 2 piquages, pieds.</p>
+<dl><dt>Forme</dt><dd>réservoir</dd><dt>Encombrement</dt><dd>1000 × 1000 × 1767.95 mm</dd><dt>Accessoires</dt><dd>1 ouverture(s), 2 piquage(s), pieds</dd><dt>Note</dt><dd>corps Ø1000 × 1500, fonds R1000 / R1000</dd></dl></div></div><div class="c"><a href="V02_hemispherique_ep8.png"><img src="V02_hemispherique_ep8.png" alt="V02_hemispherique_ep8.png" loading="lazy"></a>
+<div class="b"><h2>V02_hemispherique_ep8.png</h2><p class="w">Fonds hémisphériques, paroi cotée ep 8, piquage haut et vidange.</p>
+<dl><dt>Forme</dt><dd>réservoir</dd><dt>Encombrement</dt><dd>800 × 800 × 2000 mm</dd><dt>Accessoires</dt><dd>0 ouverture(s), 2 piquage(s), sans pieds</dd><dt>Note</dt><dd>corps Ø800 × 1200, fonds R400 / R400, paroi 8 mm</dd></dl></div></div><div class="c"><a href="V03_grande_3_piquages.png"><img src="V03_grande_3_piquages.png" alt="V03_grande_3_piquages.png" loading="lazy"></a>
+<div class="b"><h2>V03_grande_3_piquages.png</h2><p class="w">Grande enceinte : trou d&#x27;homme + petit piquage radial, 3 piquages, pieds.</p>
+<dl><dt>Forme</dt><dd>réservoir</dd><dt>Encombrement</dt><dd>1500 × 1500 × 2401.92 mm</dd><dt>Accessoires</dt><dd>2 ouverture(s), 3 piquage(s), pieds</dd><dt>Note</dt><dd>corps Ø1500 × 2000, fonds R1500 / R1500</dd></dl></div></div><div class="c"><a href="V04_petite_cote_gauche.png"><img src="V04_petite_cote_gauche.png" alt="V04_petite_cote_gauche.png" loading="lazy"></a>
+<div class="b"><h2>V04_petite_cote_gauche.png</h2><p class="w">Petite enceinte, hauteur cotée à gauche, un piquage, pieds.</p>
+<dl><dt>Forme</dt><dd>réservoir</dd><dt>Encombrement</dt><dd>600 × 600 × 1060.77 mm</dd><dt>Accessoires</dt><dd>0 ouverture(s), 1 piquage(s), pieds</dd><dt>Note</dt><dd>corps Ø600 × 900, fonds R600 / R600</dd></dl></div></div><div class="c"><a href="V05_unites_cm.png"><img src="V05_unites_cm.png" alt="V05_unites_cm.png" loading="lazy"></a>
+<div class="b"><h2>V05_unites_cm.png</h2><p class="w">Cotes en centimètres (Ø120 cm, 160 cm, R120 cm).</p>
+<dl><dt>Forme</dt><dd>réservoir</dd><dt>Encombrement</dt><dd>1200 × 1200 × 1921.54 mm</dd><dt>Accessoires</dt><dd>1 ouverture(s), 1 piquage(s), pieds</dd><dt>Note</dt><dd>corps Ø1200 × 1600, fonds R1200 / R1200</dd></dl></div></div><div class="c"><a href="V06_unites_m.png"><img src="V06_unites_m.png" alt="V06_unites_m.png" loading="lazy"></a>
+<div class="b"><h2>V06_unites_m.png</h2><p class="w">Cotes en mètres (Ø1,4 m, 2,2 m, R1,4 m), deux ouvertures simples, vidange.</p>
+<dl><dt>Forme</dt><dd>réservoir</dd><dt>Encombrement</dt><dd>1400 × 1400 × 2575.13 mm</dd><dt>Accessoires</dt><dd>2 ouverture(s), 3 piquage(s), pieds</dd><dt>Note</dt><dd>corps Ø1400 × 2200, fonds R1400 / R1400</dd></dl></div></div><div class="c"><a href="V07_deux_rayons.png"><img src="V07_deux_rayons.png" alt="V07_deux_rayons.png" loading="lazy"></a>
+<div class="b"><h2>V07_deux_rayons.png</h2><p class="w">Deux fonds différents : R1500 en haut, R600 en bas.</p>
+<dl><dt>Forme</dt><dd>réservoir</dd><dt>Encombrement</dt><dd>1000 × 1000 × 1954.12 mm</dd><dt>Accessoires</dt><dd>1 ouverture(s), 1 piquage(s), sans pieds</dd><dt>Note</dt><dd>corps Ø1000 × 1600, fonds R1500 / R600</dd></dl></div></div><div class="c"><a href="V08_trapue.png"><img src="V08_trapue.png" alt="V08_trapue.png" loading="lazy"></a>
+<div class="b"><h2>V08_trapue.png</h2><p class="w">Enceinte trapue (H &lt; D), 2 piquages, trou d&#x27;homme, pieds.</p>
+<dl><dt>Forme</dt><dd>réservoir</dd><dt>Encombrement</dt><dd>1600 × 1600 × 1628.72 mm</dd><dt>Accessoires</dt><dd>1 ouverture(s), 2 piquage(s), pieds</dd><dt>Note</dt><dd>corps Ø1600 × 1200, fonds R1600 / R1600</dd></dl></div></div><div class="c"><a href="V09_elancee.png"><img src="V09_elancee.png" alt="V09_elancee.png" loading="lazy"></a>
+<div class="b"><h2>V09_elancee.png</h2><p class="w">Colonne élancée (H = 5 × D), piquages haut et bas, petite ouverture, pieds.</p>
+<dl><dt>Forme</dt><dd>réservoir</dd><dt>Encombrement</dt><dd>500 × 500 × 2633.97 mm</dd><dt>Accessoires</dt><dd>1 ouverture(s), 2 piquage(s), pieds</dd><dt>Note</dt><dd>corps Ø500 × 2500, fonds R500 / R500</dd></dl></div></div><div class="c"><a href="V10_complete_ep10.png"><img src="V10_complete_ep10.png" alt="V10_complete_ep10.png" loading="lazy"></a>
+<div class="b"><h2>V10_complete_ep10.png</h2><p class="w">Enceinte complète : ep 10, bride, 2 piquages haut, vidange, pieds.</p>
+<dl><dt>Forme</dt><dd>réservoir</dd><dt>Encombrement</dt><dd>1200 × 1200 × 2121.54 mm</dd><dt>Accessoires</dt><dd>1 ouverture(s), 3 piquage(s), pieds</dd><dt>Note</dt><dd>corps Ø1200 × 1800, fonds R1200 / R1200, paroi 10 mm</dd></dl></div></div><div class="c"><a href="V11_photo_en_biais.jpg"><img src="V11_photo_en_biais.jpg" alt="V11_photo_en_biais.jpg" loading="lazy"></a>
+<div class="b"><h2>V11_photo_en_biais.jpg</h2><p class="w">Photo en biais sur une table (ombre, éclairage inégal).</p>
+<dl><dt>Forme</dt><dd>réservoir</dd><dt>Encombrement</dt><dd>2000 × 2000 × 2935.9 mm</dd><dt>Accessoires</dt><dd>1 ouverture(s), 2 piquage(s), pieds</dd><dt>Note</dt><dd>corps Ø2000 × 2400, fonds R2000 / R2000</dd></dl></div></div><div class="c"><a href="V12_photo_sombre.jpg"><img src="V12_photo_sombre.jpg" alt="V12_photo_sombre.jpg" loading="lazy"></a>
+<div class="b"><h2>V12_photo_sombre.jpg</h2><p class="w">Deuxième photo, cadrage et lumière différents, fonds hémisphériques.</p>
+<dl><dt>Forme</dt><dd>réservoir</dd><dt>Encombrement</dt><dd>900 × 900 × 2200 mm</dd><dt>Accessoires</dt><dd>1 ouverture(s), 1 piquage(s), sans pieds</dd><dt>Note</dt><dd>corps Ø900 × 1300, fonds R450 / R450</dd></dl></div></div><div class="c"><a href="V13_capture_basse_res.png"><img src="V13_capture_basse_res.png" alt="V13_capture_basse_res.png" loading="lazy"></a>
+<div class="b"><h2>V13_capture_basse_res.png</h2><p class="w">Capture d&#x27;écran de 480 px de large.</p>
+<dl><dt>Forme</dt><dd>réservoir</dd><dt>Encombrement</dt><dd>1100 × 1100 × 1894.74 mm</dd><dt>Accessoires</dt><dd>1 ouverture(s), 2 piquage(s), pieds</dd><dt>Note</dt><dd>corps Ø1100 × 1600, fonds R1100 / R1100</dd></dl></div></div><div class="c"><a href="V14_un_seul_stylo.png"><img src="V14_un_seul_stylo.png" alt="V14_un_seul_stylo.png" loading="lazy"></a>
+<div class="b"><h2>V14_un_seul_stylo.png</h2><p class="w">Contour et cotation au même stylo.</p>
+<dl><dt>Forme</dt><dd>réservoir</dd><dt>Encombrement</dt><dd>1300 × 1300 × 2048.33 mm</dd><dt>Accessoires</dt><dd>1 ouverture(s), 1 piquage(s), pieds</dd><dt>Note</dt><dd>corps Ø1300 × 1700, fonds R1300 / R1300</dd></dl></div></div><div class="c"><a href="V15_feuille_tournee.png"><img src="V15_feuille_tournee.png" alt="V15_feuille_tournee.png" loading="lazy"></a>
+<div class="b"><h2>V15_feuille_tournee.png</h2><p class="w">Feuille tournée de 4°, hauteur cotée à gauche.</p>
+<dl><dt>Forme</dt><dd>réservoir</dd><dt>Encombrement</dt><dd>700 × 700 × 1187.56 mm</dd><dt>Accessoires</dt><dd>1 ouverture(s), 1 piquage(s), pieds</dd><dt>Note</dt><dd>corps Ø700 × 1000, fonds R700 / R700</dd></dl></div></div></div></main></body></html>
