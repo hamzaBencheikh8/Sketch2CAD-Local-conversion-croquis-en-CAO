@@ -229,6 +229,11 @@ def half_profile(rev: dict) -> tuple[list[tuple[float, float]], Optional[int]]:
             i += 1
     if len(pts) > 2 and math.dist(pts[1], pts[2]) < lim:
         pts.pop(2)
+    # bavure au pied du flanc (base elliptique un peu plus large que le flanc, photo de biais) :
+    # le coin de la base est ramené sous le flanc
+    if len(pts) > 3 and math.dist(pts[1], pts[2]) < 0.1 * rev["height_px"]:
+        pts[1] = (pts[2][0], pts[1][1])
+        pts.pop(2)
     # second passage : les suppressions ci-dessus peuvent rendre deux segments alignés
     i = 2
     while i < len(pts) - 1:

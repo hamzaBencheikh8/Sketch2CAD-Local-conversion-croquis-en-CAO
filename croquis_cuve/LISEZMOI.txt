@@ -1,0 +1,13 @@
+Croquis de la cuve - à tester dans l'interface (web.bat) ou en ligne de commande
+
+cuve_1_simple.png        Cuve à fond bombé en haut, fond plat en bas.
+cuve_1_simple_photo.jpg  Le même croquis photographié en biais sur une table.
+    Cotes : corps Ø1200, partie droite 1400, fond bombé R600 (mm)
+    Attendu : corps de révolution, Ø1200 x 2000 mm (1400 + 600),
+              volume environ 2,036 m3
+
+cuve_2_complete.png      Cuve réelle : deux fonds bombés, trou d'homme Ø500, piquage.
+    Attendu idéal : Ø1200 x 2600 mm (600 + 1400 + 600), trou d'homme latéral.
+    PAS ENCORE PRIS EN CHARGE : le programme ne gère qu'un seul fond bombé
+    (en haut), ni les trous sur le côté d'un corps de révolution, ni les piquages.
+    Le résultat sera faux et marqué « À VÉRIFIER » : ce croquis montre la limite actuelle.

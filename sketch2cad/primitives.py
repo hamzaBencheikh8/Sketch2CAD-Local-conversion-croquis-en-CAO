@@ -92,7 +92,9 @@ def _cap(strokes: np.ndarray, xl: float, xr: float, y: float, side: str) -> Opti
     # part du trait au-delà de l'extrémité des génératrices, côté intérieur : une base du haut
     # est vue entière (son arc avant passe SOUS le haut des génératrices) ; un dôme non
     inner = float(np.mean(py > y + 0.03 * D)) if side == "haut" else float(np.mean(py < y - 0.03 * D))
-    return {"inner": inner, "cx": float(cx), "cy": float(cy), "major": float(major), "minor": float(minor),
+    # part du trait sous le centre de l'ellipse ajustée (arc avant d'une base vue entière)
+    below = float(np.mean(py > cy + 0.15 * min(a1, a2) / 2)) if side == "haut" else float(np.mean(py < cy - 0.15 * min(a1, a2) / 2))
+    return {"inner": inner, "below": below, "cx": float(cx), "cy": float(cy), "major": float(major), "minor": float(minor),
             "angle": float(ang), "coverage": coverage, "spread": spread, "n": int(px.size), "side": side,
             "inliers": inliers, "axes": [float(a1), float(a2)]}
 
@@ -102,6 +104,7 @@ def detect_cylinder(binary: np.ndarray) -> Optional[dict]:
     strokes = _clean(binary)
     lines = _vertical_lines(strokes)
     best = None
+    dome_seen = False
     for i, L in enumerate(lines):
         for R in lines[i + 1:]:
             D = R["x"] - L["x"]
@@ -119,8 +122,11 @@ def detect_cylinder(binary: np.ndarray) -> Optional[dict]:
             ok = all(c["coverage"] >= 0.6 and c["inliers"] >= 0.5 and abs(c["cx"] - xm) < 0.2 * D
                      and 0.75 * D < c["major"] < 1.35 * D and 0.1 * D < c["minor"] < 0.8 * D
                      for c in (top, bot))
-            if top["inner"] < 0.15:
-                ok = False  # sommet en dôme (gélule, ogive) : corps de révolution, pas cylindre
+            if ok and top["inner"] < 0.15:
+                # sommet en dôme (gélule, cuve à fond bombé) : c'est un corps de révolution ; une autre
+                # « paire » qui passerait (génératrice + ligne de cote voisine) serait une fausse piste
+                dome_seen = True
+                ok = False
             # les deux bases doivent être distinctes (un cercle seul donne deux « ellipses » superposées)
             if (bot["cy"] - top["cy"]) < 0.5 * (top["minor"] + bot["minor"]):
                 ok = False
@@ -130,6 +136,8 @@ def detect_cylinder(binary: np.ndarray) -> Optional[dict]:
             if best is None or score > best["score"]:
                 best = {"left": L, "right": R, "top": top, "bottom": bot, "score": score,
                         "D_px": float(D), "H_px": float(bot["cy"] - top["cy"])}
+    if dome_seen:
+        return None
     if best:
         log.info("Cylindre détecté : Ø %.0f px, hauteur %.0f px", best["D_px"], best["H_px"])
     return best
