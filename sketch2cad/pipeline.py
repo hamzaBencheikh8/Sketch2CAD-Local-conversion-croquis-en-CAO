@@ -170,6 +170,8 @@ def _run(image: Path, out_dir: Path, cfg: dict, dims_json: Optional[Path] = None
                                "Fermez le trait sur le papier, ou choisissez un autre dessin."], {})
     if p.shape == "cylinder":
         return run_cylinder(p, img, out_dir, cfg, name)
+    if p.shape == "vessel":
+        return run_vessel(p, img, out_dir, cfg, name)
     if p.shape == "revolution":
         return run_revolution(p, img, out_dir, cfg, name)
     g = extract_graph(p, out_dir, client, vlm, cfg["default_thickness"])                  # agent 2
@@ -348,6 +350,88 @@ def run_cylinder(p: Perception, img, out_dir: Path, cfg: dict, name: str = "part
     rep["files"] = sorted(f.name for f in out_dir.iterdir() if f.is_file()) + ["report.json"]
     (out_dir / "report.json").write_text(json.dumps(rep, indent=2, ensure_ascii=False), encoding="utf-8")
     return rep
+
+
+def run_vessel(p: Perception, img, out_dir: Path, cfg: dict, name: str = "part",
+               values: Optional[dict] = None) -> dict:
+    """Branche « réservoir » : corps, fonds, ouvertures, piquages et pieds, tous paramétriques."""
+    from .cad import synthesize_vessel
+    from .vessel import assign_vessel_dims, cap_depth
+    if values is None:
+        values, warns, confl = assign_vessel_dims(p.vessel, p.dimensions, cfg["default_thickness"])
+    else:
+        warns, confl = list(values.get("warnings", [])), []
+    a = values["diameter"] / 2
+    values["head_top"] = round(cap_depth(values["R_top"], a), 3)
+    values["head_bottom"] = round(cap_depth(values["R_bottom"], a), 3)
+    total = values["height"] + values["head_top"] + values["head_bottom"]
+    sol = {"shape": "vessel", **values, "total_height": round(total, 3), "warnings": warns, "conflicts": confl}
+    (out_dir / "solution.json").write_text(json.dumps(sol, indent=2, ensure_ascii=False), encoding="utf-8")
+    if img is not None:
+        _vessel_comparison(img, values, out_dir / "comparison.png")
+    cad = synthesize_vessel(values, out_dir, name)
+    issues = _text_issues(p) if p else []
+    warns = issues + warns
+    status = ("À VÉRIFIER (voir report.json)" if not cad.get("ok") or confl or issues
+              else "OK avec avertissements" if warns else "OK")
+    rep = {
+        "status": status, "shape": "vessel", "drawing": p.drawing if p else None,
+        "drawings": p.drawings if p else [], "profile": cfg["profile"], "graph_method": "primitive",
+        "vertices": 0, "holes": len(values["openings"]) + len(values["nozzles"]),
+        "thickness_mm": round(total, 3), "diameter_mm": values["diameter"], "dof_remaining": 0,
+        "max_residual_mm": 0.0, "conflicts": confl, "relaxed_implicit": [],
+        "warnings": (p.warnings if p else []) + warns, "critic": [], "vlm_critic": None,
+        "cad_ok": cad.get("ok"), "solid": cad.get("solid"),
+        "vessel": {"openings": len(values["openings"]), "nozzles": len(values["nozzles"]),
+                   "legs": (values["legs"] or {}).get("count", 0)},
+    }
+    rep["files"] = sorted(f.name for f in out_dir.iterdir() if f.is_file()) + ["report.json"]
+    (out_dir / "report.json").write_text(json.dumps(rep, indent=2, ensure_ascii=False), encoding="utf-8")
+    return rep
+
+
+def _vessel_comparison(sketch, v: dict, path: Path) -> None:
+    """Croquis à gauche, vue de face calculée (à l'échelle des cotes) à droite."""
+    import math
+    import numpy as np
+    from .vessel import cap_depth
+    h = 700
+    s = cv2.resize(sketch, (int(sketch.shape[1] * h / sketch.shape[0]), h))
+    a, H = v["diameter"] / 2, v["height"]
+    ht, hb = cap_depth(v["R_top"], a), cap_depth(v["R_bottom"], a)
+    zg = (v["legs"] or {}).get("ground", -hb)
+    ztop = H + ht + max([n["height"] for n in v["nozzles"] if n["side"] == "top"] + [0])
+    W = 460
+    sc = min((W - 80) / (2 * a), (h - 90) / (ztop - zg))
+    cx, base = W / 2, h - 50
+    P = lambda x, z: (int(cx + x * sc), int(base - (z - zg) * sc))
+    canvas = np.full((h, W, 3), 255, np.uint8)
+    ink = (40, 40, 40)
+    zct, zcb = H + ht - v["R_top"], v["R_bottom"] - hb
+    top = [P(x, zct + math.sqrt(v["R_top"] ** 2 - x * x)) for x in np.linspace(-a, a, 60)]
+    bot = [P(x, zcb - math.sqrt(v["R_bottom"] ** 2 - x * x)) for x in np.linspace(a, -a, 60)]
+    cv2.polylines(canvas, [np.array([P(-a, 0), P(-a, H)] + top + [P(a, 0)] + bot, np.int32)], True, ink, 2, cv2.LINE_AA)
+    for o in v["openings"]:
+        cv2.circle(canvas, P(o["x"], o["z"]), int(o["bore"] / 2 * sc), (0, 0, 200), 2, cv2.LINE_AA)
+        if o.get("flange"):
+            cv2.circle(canvas, P(o["x"], o["z"]), int(o["flange"] / 2 * sc), ink, 1, cv2.LINE_AA)
+    for n in v["nozzles"]:
+        r = n["dia"] / 2
+        if n["side"] == "top":
+            zs = zct + math.sqrt(max(v["R_top"] ** 2 - n["x"] ** 2, 0))
+            cv2.rectangle(canvas, P(n["x"] - r, zs + n["height"]), P(n["x"] + r, zs), ink, 2)
+        else:
+            zs = zcb - math.sqrt(max(v["R_bottom"] ** 2 - n["x"] ** 2, 0))
+            cv2.rectangle(canvas, P(n["x"] - r, zs), P(n["x"] + r, zs - n["height"]), ink, 2)
+    if v["legs"]:
+        for sgn in (-1, 1):
+            x = sgn * v["legs"]["radius"] * math.cos(math.radians(45))
+            zs = zcb - math.sqrt(max(v["R_bottom"] ** 2 - x * x, 0))
+            cv2.line(canvas, P(x, zs), P(x, zg), (0, 120, 220), 2, cv2.LINE_AA)
+    cv2.putText(canvas, f"D {v['diameter']:g} x H {H:g} (+ fonds {ht:.0f}/{hb:.0f}) mm", (10, h - 15),
+                cv2.FONT_HERSHEY_SIMPLEX, 0.5, (0, 0, 200), 1, cv2.LINE_AA)
+    out = np.hstack([s, np.full((h, 10, 3), 200, np.uint8), canvas])
+    cv2.imencode(".png", out)[1].tofile(str(path))
 
 
 def _cylinder_comparison(sketch, D: float, H: float, path: Path) -> None:

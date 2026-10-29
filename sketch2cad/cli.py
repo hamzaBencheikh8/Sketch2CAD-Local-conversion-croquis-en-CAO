@@ -39,8 +39,11 @@ def _print_report(rep: dict) -> None:
             print("Relancez avec --interpret sphere  ou  --interpret disc")
         print("Résultat : " + rep["status"])
         return
-    if rep.get("shape") in ("cylinder", "revolution", "sphere", "disc"):
+    if rep.get("shape") in ("cylinder", "revolution", "sphere", "disc", "vessel"):
         print(f"Forme : {rep['shape']}   Ø max {rep.get('diameter_mm', 0):g} mm   hauteur : {rep['thickness_mm']:g} mm")
+        if rep.get("vessel"):
+            v = rep["vessel"]
+            print(f"Réservoir : {v['openings']} ouverture(s), {v['nozzles']} piquage(s), {v['legs']} pied(s)")
     else:
         print(f"Sommets : {rep['vertices']}   perçages : {rep['holes']}   épaisseur : {rep['thickness_mm']:g} mm")
     print(f"Résidu max des cotes : {rep['max_residual_mm']:.2e} mm   DDL restants : {rep['dof_remaining']}")

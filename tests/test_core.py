@@ -422,3 +422,65 @@ def test_solver_height_constraint_on_slanted_edge():
     ys = [p[1] for p in sol.points]
     assert abs(max(ys) - min(ys) - 50) < 1e-6
     assert abs(max(p[0] for p in sol.points) - 30) < 1e-6
+
+
+# --------------------------------------------------------------------------- réservoir
+
+def _vessel_sketch():
+    import sys
+    from pathlib import Path
+    sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
+    from make_test_set import Sheet, draw_vessel
+    sh = Sheet(W=1200, H=1600, seed=31, font=0, ink=0)
+    draw_vessel(sh, dict(cx=580, a=210, yb=520, yt=1180, kt=0.45, kb=0.45,
+                         openings=[(0, 900, 80, 115, None), (110, 640, 32, None, None)],
+                         top=[(-90, 40, 45), (80, 40, 45)], bottom=[(0, 40, 40)], legs=(170, 150),
+                         D="", H="", d_y=1080))
+    sh.texts.clear()
+    return sh.render()
+
+
+def test_vessel_detection_finds_body_heads_and_accessories():
+    from sketch2cad.perception import normalize
+    from sketch2cad.vessel import detect_vessel
+    _, binary = normalize(_vessel_sketch())
+    v = detect_vessel(binary)
+    assert v is not None
+    assert len(v["openings"]) == 2 and sum(1 for o in v["openings"] if o["r_flange"]) == 1
+    assert len(v["nozzles_top"]) == 2 and len(v["nozzles_bottom"]) == 1
+    assert len(v["legs"]) == 2
+    # le raccordement d'un fond tangent au corps est flou : la partie droite est mesurée à ~10 % près
+    assert abs(v["D_px"] - 420) < 15 and abs(v["H_px"] - 660) < 0.1 * 660
+
+
+def test_vessel_dims_and_cap_geometry():
+    from sketch2cad.schema import Dimension
+    from sketch2cad.vessel import assign_vessel_dims, cap_depth
+    assert abs(cap_depth(1200, 600) - 160.7695) < 1e-3 and cap_depth(400, 400) == 400
+    v = {"xl": 100, "xr": 500, "y_top": 200, "y_bot": 900, "D_px": 400, "H_px": 700, "x_axis": 300,
+         "top": {"depth_px": 80}, "bottom": {"depth_px": 80},
+         "openings": [{"cx": 300, "cy": 500, "r_bore": 60, "r_flange": 85}], "nozzles_top": [],
+         "nozzles_bottom": [], "legs": []}
+    dims = [Dimension(id="T1", raw="Ø1000", kind="diameter", value=1000, bbox=(260, 300, 340, 330)),
+            Dimension(id="T2", raw="1800", kind="length", value=1800, bbox=(560, 530, 620, 560)),
+            Dimension(id="T3", raw="Ø300", kind="diameter", value=300, bbox=(270, 600, 330, 630)),
+            Dimension(id="T4", raw="R1000", kind="radius", value=1000, bbox=(520, 120, 600, 150)),
+            Dimension(id="T5", raw="ep 8", kind="thickness", value=8, bbox=(20, 1000, 80, 1030))]
+    out, warns, confl = assign_vessel_dims(v, dims)
+    assert (out["diameter"], out["height"], out["R_top"], out["R_bottom"], out["wall"]) == (1000, 1800, 1000, 1000, 8)
+    assert out["openings"][0]["bore"] == 300 and abs(out["openings"][0]["flange"] - 425) < 1
+    assert not confl
+
+
+def test_vessel_cad_builds_hollow_shell_with_accessories(tmp_path):
+    from sketch2cad.cad import synthesize_vessel
+    vals = {"diameter": 1000.0, "height": 1800.0, "R_top": 1000.0, "R_bottom": 1000.0, "wall": 5.0,
+            "openings": [{"x": 0.0, "z": 1000.0, "bore": 450.0, "flange": 640.0, "length": 270.0}],
+            "nozzles": [{"side": "top", "x": -200.0, "dia": 100.0, "height": 130.0}],
+            "legs": {"count": 4, "radius": 460.0, "dia": 50.0, "ground": -900.0}}
+    rep = synthesize_vessel(vals, tmp_path)
+    assert rep["ok"], rep["log"][-800:]
+    sx, sy, sz = (float(t) for t in rep["solid"]["bbox"].split("x"))
+    assert abs(sx - 1000) < 1 and sz > 1800 + 2 * 133.9
+    assert float(rep["solid"]["volume"]) < 0.1 * 3.1416 * 500 ** 2 * 1800   # coque creuse, pas un plein
+    assert (tmp_path / "part.step").exists() and (tmp_path / "part.dxf").exists()

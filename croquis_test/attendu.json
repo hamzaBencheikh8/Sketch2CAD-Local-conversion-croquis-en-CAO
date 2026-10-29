@@ -192,5 +192,64 @@
       "Ø16"
     ],
     "volume_mm3": 23195.752280681012
+  },
+  {
+    "file": "15_cuve_complete.png",
+    "code": "vessel",
+    "what": "Cuve complète : deux fonds bombés R1200, trou d'homme à bride, deux piquages, pieds.",
+    "shape": "réservoir",
+    "size": [
+      1200,
+      1200,
+      1721.539
+    ],
+    "openings": 1,
+    "nozzles": 2,
+    "legs": true,
+    "note": "corps Ø1200 × 1400, fonds R1200 (flèche 160,8), trou d'homme Ø400 à bride, 2 piquages, pieds"
+  },
+  {
+    "file": "16_cuve_hemispherique.png",
+    "code": "vessel",
+    "what": "Cuve à fonds hémisphériques, paroi cotée « ep 6 », un piquage, hauteur cotée à gauche.",
+    "shape": "réservoir",
+    "size": [
+      800,
+      800,
+      1800
+    ],
+    "openings": 0,
+    "nozzles": 1,
+    "legs": false,
+    "note": "corps Ø800 × 1000, fonds hémisphériques R400, paroi 6 mm, un piquage"
+  },
+  {
+    "file": "17_cuve_sur_pieds.png",
+    "code": "vessel",
+    "what": "Cuve sur pieds : deux ouvertures en façade, piquages en haut et vidange en bas.",
+    "shape": "réservoir",
+    "size": [
+      1000,
+      1000,
+      2067.949
+    ],
+    "openings": 2,
+    "nozzles": 3,
+    "legs": true,
+    "note": "corps Ø1000 × 1800, fonds R1000, trou d'homme Ø450 + petit piquage radial, 2 piquages en haut, 1 vidange, pieds"
+  },
+  {
+    "file": "18_cuve_photo.jpg",
+    "code": "vessel",
+    "what": "Le croquis 17 photographié en biais.",
+    "shape": "réservoir",
+    "size": [
+      1000,
+      1000,
+      2067.949
+    ],
+    "openings": 2,
+    "nozzles": 3,
+    "legs": true
   }
 ]

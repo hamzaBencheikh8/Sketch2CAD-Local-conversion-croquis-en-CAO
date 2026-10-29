@@ -355,7 +355,7 @@ async function tick(){
   render(j);
 }
 const SHAPES = {prism:"pièce plate", cylinder:"cylindre", revolution:"corps de révolution", sphere:"sphère",
-                disc:"disque", open:"dessin ouvert", circle:"cercle", choose_drawing:"feuille"};
+                disc:"disque", vessel:"réservoir", open:"dessin ouvert", circle:"cercle", choose_drawing:"feuille"};
 async function rerun(body){
   const r = await fetch(`/api/jobs/${current}/rerun`, {method:"POST", headers:{"Content-Type":"application/json"},
                                                        body: JSON.stringify(body)});
@@ -476,12 +476,15 @@ async function loadCotes(id){
   const names = {length:"longueur", angle:"angle (°)", fillet:"congé R", diameter:"diamètre Ø",
                  cyl_diameter:"diamètre Ø du cylindre (mm)", cyl_height:"hauteur du cylindre (mm)",
                  arc_radius:"rayon du dôme R", radius_at:"rayon (Ø/2) à ce sommet", height:"hauteur (cote verticale)",
+                 ves_diameter:"Ø du corps (mm)", ves_height:"hauteur droite du corps (mm)", ves_R_top:"R du fond haut (mm)",
+                 ves_R_bottom:"R du fond bas (mm)", ves_wall:"épaisseur de paroi (mm)", ves_opening:"Ø de l'ouverture (mm)",
+                 ves_nozzle:"Ø du piquage (mm)", ves_legs:"hauteur des pieds sous le corps (mm)",
                  circ_radius:"rayon (mm)", circ_thickness:"épaisseur du disque (mm)"};
   const opts = t => (t === "length" || t === "arc_radius" || t === "height") ? graphInfo.edges : t === "diameter" ? graphInfo.circles : graphInfo.vertices;
-  const fixed = t => t.startsWith("cyl_") || t.startsWith("circ_");
+  const fixed = t => t.startsWith("cyl_") || t.startsWith("circ_") || t.startsWith("ves_");
   $("#cot").innerHTML = graphInfo.rows.map(r => `<tr data-i="${r.index}">
     <td class="mono">${esc(r.source || "—")}</td><td>${names[r.type]}${r.note ? ` <small title="${esc(r.note)}">✎</small>` : ""}</td>
-    <td>${fixed(r.type) ? "—" : `<select>${opts(r.type).map(o => `<option ${o===r.target?"selected":""}>${o}</option>`).join("")}</select>`}</td>
+    <td>${fixed(r.type) ? (r.target ? esc(r.target) : "—") : `<select>${opts(r.type).map(o => `<option ${o===r.target?"selected":""}>${o}</option>`).join("")}</select>`}</td>
     <td><input type="number" step="any" value="${r.value}"></td>
     <td class="c">${fixed(r.type) ? "" : `<input type="checkbox">`}</td></tr>`).join("");
   $("#cthick").value = graphInfo.thickness ?? "";

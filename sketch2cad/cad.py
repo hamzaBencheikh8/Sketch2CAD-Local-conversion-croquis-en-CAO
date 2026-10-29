@@ -657,3 +657,222 @@ def synthesize_sphere(diameter: float, out_dir: Path, name: str = "part") -> dic
             report["solid"] = dict(kv.split("=") for kv in line[3:].split())
     (out_dir / "cad_report.json").write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
     return report
+
+
+# =========================================================================== réservoir
+_VESSEL_TEMPLATE = r'''#!/usr/bin/env python3
+"""Réservoir généré par Sketch2CAD-Local le {date}.
+
+Corps cylindrique vertical (axe Z, ligne de raccordement basse en z = 0), deux fonds bombés en
+calotte sphérique, coque creuse d'épaisseur WALL, ouvertures à bride en façade (vers -Y),
+piquages axiaux et pieds. Toutes les cotes sont en mm : modifiez VESSEL puis relancez
+« python {name}.py ».
+"""
+import math
+import sys
+from pathlib import Path
+
+NAME = {name!r}
+VESSEL = {vessel!r}
+
+
+def _caps(a, R_top, R_bot, H):
+    """Centres (z) des calottes et flèches des fonds pour un corps de rayon a."""
+    ht = R_top - math.sqrt(R_top ** 2 - a ** 2)
+    hb = R_bot - math.sqrt(R_bot ** 2 - a ** 2)
+    return H + ht - R_top, R_bot - hb, ht, hb
+
+
+def _profile(a, zcb, Rb, zct, Rt):
+    """Demi-profil (x, z) : fond bas, flanc, fond haut, fermé par l'axe."""
+    zb = zcb - math.sqrt(Rb ** 2 - a ** 2)
+    zt = zct + math.sqrt(Rt ** 2 - a ** 2)
+    mb = (a / 2, zcb - math.sqrt(Rb ** 2 - (a / 2) ** 2))
+    mt = (a / 2, zct + math.sqrt(Rt ** 2 - (a / 2) ** 2))
+    return (0.0, zcb - Rb), mb, (a, zb), (a, zt), mt, (0.0, zct + Rt)
+
+
+def _revolve(pts):
+    from build123d import Axis, BuildLine, BuildPart, BuildSketch, Line, Plane, ThreePointArc, make_face, revolve
+    p0, mb, pb, pt, mt, p1 = pts
+    with BuildPart() as part:
+        with BuildSketch(Plane.XZ):
+            with BuildLine():
+                ThreePointArc(p0, mb, pb)
+                Line(pb, pt)
+                ThreePointArc(pt, mt, p1)
+                Line(p1, p0)
+            make_face()
+        revolve(axis=Axis.Z)
+    return part.part
+
+
+def head_z(r, top=True):
+    """Altitude de la surface extérieure d'un fond à la distance r de l'axe."""
+    v = VESSEL
+    zct, zcb, _, _ = _caps(v["diameter"] / 2, v["R_top"], v["R_bottom"], v["height"])
+    if top:
+        return zct + math.sqrt(v["R_top"] ** 2 - r ** 2)
+    return zcb - math.sqrt(v["R_bottom"] ** 2 - r ** 2)
+
+
+def build_solid():
+    from build123d import Cylinder, Pos, Rot, Align
+    v = VESSEL
+    a, H, t = v["diameter"] / 2, v["height"], v["wall"]
+    zct, zcb, ht, hb = _caps(a, v["R_top"], v["R_bottom"], H)
+    outer = _revolve(_profile(a, zcb, v["R_bottom"], zct, v["R_top"]))
+    inner = _revolve(_profile(a - t, zcb, v["R_bottom"] - t, zct, v["R_top"] - t))
+    solid = outer - inner
+    cuts = []
+    al = (Align.CENTER, Align.CENTER, Align.MIN)
+    # ouvertures en façade : col + bride vers -Y, alésage à travers la paroi
+    for o in v["openings"]:
+        x, z, bore = o["x"], o["z"], o["bore"]
+        s = math.sqrt(max(a ** 2 - x ** 2, 1.0))           # profondeur de la paroi à cette abscisse
+        L = o["length"]
+        neck = Pos(x, -(s - 2 * t), z) * Rot(90, 0, 0) * Cylinder(bore / 2 + t, L + 2 * t, align=al)
+        solid = solid + neck
+        if o.get("flange"):
+            tf = max(2 * t, 0.04 * bore)
+            solid = solid + Pos(x, -(s + L - tf), z) * Rot(90, 0, 0) * Cylinder(o["flange"] / 2, tf, align=al)
+        cuts.append(Pos(x, -(s - 3 * t), z) * Rot(90, 0, 0) * Cylinder(bore / 2, L + 4 * t, align=al))
+    # piquages axiaux (haut / bas)
+    for n in v["nozzles"]:
+        x, dia, hgt = n["x"], n["dia"], n["height"]
+        top = n["side"] == "top"
+        zs = head_z(abs(x), top)
+        if top:
+            z0, z1 = zs - 2 * t, zs + hgt
+        else:
+            z0, z1 = zs - hgt, zs + 2 * t
+        solid = solid + Pos(x, 0, z0) * Cylinder(dia / 2 + t, z1 - z0, align=al)
+        bz0, bz1 = (zs - 3 * t, z1 + 1) if top else (z0 - 1, zs + 3 * t)
+        cuts.append(Pos(x, 0, bz0) * Cylinder(dia / 2, bz1 - bz0, align=al))
+    for c in cuts:
+        solid = solid - c
+    # pieds : n pieds à 360/n degrés, soudés sous le fond (ou contre le corps)
+    lg = v.get("legs")
+    if lg:
+        r, d, zg = lg["radius"], lg["dia"], lg["ground"]
+        for k in range(lg["count"]):
+            ang = math.radians(45 + 360 * k / lg["count"])
+            px, py = r * math.cos(ang), r * math.sin(ang)
+            ztop = head_z(min(r, a - d / 2), False) + 0.5 * t
+            solid = solid + Pos(px, py, zg) * Cylinder(d / 2, ztop - zg, align=al)
+    return solid
+
+
+def _arc_pts(cx, cz, R, a, top, n=40):
+    """Points d'un fond (vue de face) de x = -a à x = +a."""
+    out = []
+    for i in range(n + 1):
+        x = -a + 2 * a * i / n
+        dz = math.sqrt(max(R ** 2 - x ** 2, 0.0))
+        out.append((x, cz + dz if top else cz - dz))
+    return out
+
+
+def write_dxf(path):
+    """Vue de face cotée : coque, fonds, ouvertures, piquages, pieds."""
+    import ezdxf
+    v = VESSEL
+    a, H, t = v["diameter"] / 2, v["height"], v["wall"]
+    zct, zcb, ht, hb = _caps(a, v["R_top"], v["R_bottom"], H)
+    doc = ezdxf.new("R2018", setup=True)
+    doc.units = ezdxf.units.MM
+    for nme, col, lw in (("CONTOUR", 7, 50), ("PERCAGES", 1, 35), ("COTATION", 3, 18), ("AXES", 4, 13)):
+        doc.layers.add(nme, color=col, lineweight=lw)
+    msp = doc.modelspace()
+    C = {{"layer": "CONTOUR"}}
+    h = max(2.5, round(max(v["diameter"], H) * 0.02, 1))
+    ov = {{"dimtxt": h, "dimasz": h * 0.8, "dimexe": h * 0.4, "dimexo": h * 0.4, "dimgap": h * 0.3,
+          "dimdec": 1, "dimzin": 8, "dimlfac": 1.0, "dimtih": 0, "dimtoh": 0}}
+    att = {{"layer": "COTATION"}}
+    msp.add_line((-a, 0), (-a, H), dxfattribs=C)
+    msp.add_line((a, 0), (a, H), dxfattribs=C)
+    msp.add_lwpolyline(_arc_pts(0, zct, v["R_top"], a, True), dxfattribs=C)
+    msp.add_lwpolyline(_arc_pts(0, zcb, v["R_bottom"], a, False), dxfattribs=C)
+    msp.add_line((0, -hb - 2 * h), (0, H + ht + 2 * h), dxfattribs={{"layer": "AXES", "linetype": "CENTER"}})
+    for o in v["openings"]:
+        msp.add_circle((o["x"], o["z"]), o["bore"] / 2, dxfattribs={{"layer": "PERCAGES"}})
+        if o.get("flange"):
+            msp.add_circle((o["x"], o["z"]), o["flange"] / 2, dxfattribs=C)
+        msp.add_text(f"%%c{{o['bore']:g}}", height=h, dxfattribs=att).set_placement(
+            (o["x"] - h, o["z"] - (o.get("flange") or o["bore"]) / 2 - 2 * h))
+    for n in v["nozzles"]:
+        top = n["side"] == "top"
+        zs = head_z(abs(n["x"]), top)
+        r = n["dia"] / 2 + t
+        z1 = zs + n["height"] if top else zs - n["height"]
+        msp.add_lwpolyline([(n["x"] - r, zs), (n["x"] - r, z1), (n["x"] + r, z1), (n["x"] + r, zs)], dxfattribs=C)
+    lg = v.get("legs")
+    if lg:
+        for s in (-1, 1):
+            x = s * lg["radius"] * math.cos(math.radians(45))
+            ztop = head_z(min(abs(x), a), False)
+            for dx in (-lg["dia"] / 2, lg["dia"] / 2):
+                msp.add_line((x + dx, lg["ground"]), (x + dx, ztop), dxfattribs=C)
+        msp.add_line((-a - 2 * h, lg["ground"]), (a + 2 * h, lg["ground"]), dxfattribs={{"layer": "AXES"}})
+    d = msp.add_linear_dim(base=(0, H * 0.75), p1=(-a, H * 0.75), p2=(a, H * 0.75), override=ov, dxfattribs=att)
+    d.set_text("%%c<>")
+    d.render()
+    msp.add_linear_dim(base=(a + 4 * h, 0), p1=(a, 0), p2=(a, H), angle=90, override=ov, dxfattribs=att).render()
+    msp.add_linear_dim(base=(a + 8 * h, 0), p1=(0, -hb), p2=(0, H + ht), angle=90, override=ov,
+                       dxfattribs=att).render()
+    msp.add_text(f"R{{v['R_top']:g}}", height=h, dxfattribs=att).set_placement((a * 0.55, H + ht + h))
+    msp.add_text(f"R{{v['R_bottom']:g}}", height=h, dxfattribs=att).set_placement((a * 0.55, -hb - 2.2 * h))
+    msp.add_text(f"Paroi ep {{t:g}} mm", height=h, dxfattribs=att).set_placement((-a, -hb - 4.5 * h
+                 + (lg["ground"] + hb if lg else 0)))
+    doc.saveas(path)
+    return doc
+
+
+def write_svg(doc, path):
+    from ezdxf.addons.drawing import Frontend, RenderContext, config, layout, svg
+    backend = svg.SVGBackend()
+    cfg = config.Configuration(background_policy=config.BackgroundPolicy.WHITE,
+                               color_policy=config.ColorPolicy.BLACK,
+                               lineweight_policy=config.LineweightPolicy.ABSOLUTE)
+    Frontend(RenderContext(doc), backend, config=cfg).draw_layout(doc.modelspace())
+    page = layout.Page(210, 297, layout.Units.mm, margins=layout.Margins.all(10))  # A4 portrait
+    Path(path).write_text(backend.get_string(page, settings=layout.Settings(fit_page=True)), encoding="utf-8")
+
+
+def main(out_dir="."):
+    out = Path(out_dir)
+    out.mkdir(parents=True, exist_ok=True)
+    doc = write_dxf(str(out / f"{{NAME}}.dxf"))
+    write_svg(doc, out / f"{{NAME}}.svg")
+    from build123d import export_step, export_stl
+    solid = build_solid()
+    export_step(solid, str(out / f"{{NAME}}.step"))
+    tol = max(0.05, VESSEL["diameter"] / 1500)
+    export_stl(solid, str(out / f"{{NAME}}.stl"), tolerance=tol, angular_tolerance=0.1)
+    bb = solid.bounding_box()
+    print(f"OK volume={{solid.volume:.3f}} valid={{solid.is_valid}} "
+          f"bbox={{bb.size.X:.3f}}x{{bb.size.Y:.3f}}x{{bb.size.Z:.3f}}")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main(sys.argv[1] if len(sys.argv) > 1 else "."))
+'''
+
+
+def synthesize_vessel(values: dict, out_dir: Path, name: str = "part") -> dict:
+    out_dir = Path(out_dir).resolve()
+    keep = ("diameter", "height", "R_top", "R_bottom", "wall", "openings", "nozzles", "legs")
+    vessel = {k: values[k] for k in keep}
+    script = _VESSEL_TEMPLATE.format(date=_dt.datetime.now().strftime("%Y-%m-%d %H:%M"), name=name, vessel=vessel)
+    path = out_dir / f"{name}.py"
+    path.write_text(script, encoding="utf-8")
+    ok, log_txt = run_script(path, out_dir, timeout=300)
+    report = {"script": str(path), "ok": ok, "log": log_txt}
+    if not ok:
+        log.error("%s a échoué :\n%s", path.name, log_txt)
+    for line in log_txt.splitlines():
+        if line.startswith("OK "):
+            report["solid"] = dict(kv.split("=") for kv in line[3:].split())
+    (out_dir / "cad_report.json").write_text(json.dumps(report, indent=2, ensure_ascii=False), encoding="utf-8")
+    return report

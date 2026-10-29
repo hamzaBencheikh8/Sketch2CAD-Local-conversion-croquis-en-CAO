@@ -250,6 +250,8 @@ def create_app(work_dir: Path | None = None, config_path: Path | None = None) ->
                 job["size"] = [s["diameter"]] * 3
             elif shape == "disc":
                 job["size"] = [s["diameter"], s["diameter"], s["thickness"]]
+            elif shape == "vessel":
+                job["size"] = [s["diameter"], s["diameter"], s["total_height"]]
             elif shape == "revolution":
                 xs = [p[0] for p in s["points"]]
                 ys = [p[1] for p in s["points"]]
@@ -275,6 +277,24 @@ def create_app(work_dir: Path | None = None, config_path: Path | None = None) ->
                      "source": src.get("diameter"), "note": None},
                     {"index": 1, "type": "cyl_height", "target": None, "value": s["height"],
                      "source": src.get("height"), "note": None}])
+            if s.get("shape") == "vessel":
+                src = s.get("sources", {})
+                rows = [{"index": i, "type": t, "target": None, "value": s[k], "source": src.get(sk), "note": None}
+                        for i, (t, k, sk) in enumerate((("ves_diameter", "diameter", "diameter"),
+                                                        ("ves_height", "height", "height"),
+                                                        ("ves_R_top", "R_top", "R_top"),
+                                                        ("ves_R_bottom", "R_bottom", "R_bottom"),
+                                                        ("ves_wall", "wall", "wall")))]
+                for k, o in enumerate(s.get("openings", [])):
+                    rows.append({"index": 100 + k, "type": "ves_opening", "target": f"O{k + 1}", "value": o["bore"],
+                                 "source": src.get(f"opening{k + 1}"), "note": None})
+                for k, n in enumerate(s.get("nozzles", [])):
+                    rows.append({"index": 200 + k, "type": "ves_nozzle", "target": f"P{k + 1}", "value": n["dia"],
+                                 "source": None, "note": None})
+                if s.get("legs"):
+                    rows.append({"index": 300, "type": "ves_legs", "target": None, "value": -s["legs"]["ground"],
+                                 "source": None, "note": None})
+                return jsonify(shape="vessel", thickness=None, edges=[], vertices=[], circles=[], rows=rows)
             if s.get("shape") in ("sphere", "disc"):
                 rows = [{"index": 0, "type": "circ_radius", "target": None, "value": s["radius"],
                          "source": s.get("sources", {}).get("radius"), "note": None}]
@@ -317,6 +337,48 @@ def create_app(work_dir: Path | None = None, config_path: Path | None = None) ->
             threading.Thread(target=_worker, args=(jid, cyl_task), daemon=True).start()
             return jsonify(ok=True)
         old_sol = json.loads(sol_p.read_text(encoding="utf-8")) if sol_p.exists() else {}
+        if old_sol.get("shape") == "vessel":
+            vals = {int(r["index"]): float(r["value"]) for r in body.get("rows", [])}
+            values = {k: old_sol[k] for k in ("diameter", "height", "R_top", "R_bottom", "wall", "openings",
+                                              "nozzles", "legs", "sources")}
+            values["openings"] = [dict(o) for o in values["openings"]]
+            values["nozzles"] = [dict(n) for n in values["nozzles"]]
+            values["legs"] = dict(values["legs"]) if values["legs"] else None
+            for i, key in enumerate(("diameter", "height", "R_top", "R_bottom", "wall")):
+                if i in vals and vals[i] > 0:
+                    values[key] = vals[i]
+            sx = values["diameter"] / old_sol["diameter"]
+            sy = values["height"] / old_sol["height"]
+            for o in values["openings"]:          # le corps change : les accessoires suivent à l'échelle
+                o["x"], o["z"] = round(o["x"] * sx, 1), round(o["z"] * sy, 1)
+            for n in values["nozzles"]:
+                n["x"] = round(n["x"] * sx, 1)
+            if values["legs"]:
+                values["legs"]["radius"] = round(values["legs"]["radius"] * sx, 1)
+            for k, o in enumerate(values["openings"]):
+                if 100 + k in vals and vals[100 + k] > 0:
+                    o["bore"] = vals[100 + k]
+                    if o.get("flange"):
+                        o["flange"] = round(max(o["flange"], 1.15 * o["bore"]), 1)
+            for k, n in enumerate(values["nozzles"]):
+                if 200 + k in vals and vals[200 + k] > 0:
+                    n["dia"] = vals[200 + k]
+            if values["legs"] and 300 in vals and vals[300] > 0:
+                values["legs"]["ground"] = -vals[300]
+            for key in ("R_top", "R_bottom"):
+                values[key] = max(values[key], values["diameter"] / 2)
+            cfg = load_config(config_path)
+
+            def ves_task():
+                from .perception import load_image
+                from .pipeline import run_vessel
+                p = Perception.model_validate_json((d / "perception.json").read_text(encoding="utf-8"))
+                img = load_image(d / "rectified.png") if (d / "rectified.png").exists() else None
+                rep = run_vessel(p, img, d, cfg, values=values)
+                rep["edited"] = True
+                (d / "report.json").write_text(json.dumps(rep, indent=2, ensure_ascii=False), encoding="utf-8")
+            threading.Thread(target=_worker, args=(jid, ves_task), daemon=True).start()
+            return jsonify(ok=True)
         if old_sol.get("shape") in ("sphere", "disc"):
             vals = {r["index"]: float(r["value"]) for r in body.get("rows", [])}
             values = {"radius": vals.get(0, old_sol["radius"]), "thickness": vals.get(1, old_sol.get("thickness")),

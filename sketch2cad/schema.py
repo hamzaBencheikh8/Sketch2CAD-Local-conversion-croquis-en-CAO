@@ -59,10 +59,11 @@ class Perception(BaseModel):
     circles: list[Circle]
     dimensions: list[Dimension]
     warnings: list[str] = []
-    shape: str = "prism"                      # prism | cylinder | revolution | circle | choose_drawing
+    shape: str = "prism"                      # prism | cylinder | revolution | vessel | circle | choose_drawing
     cylinder: Optional[dict] = None           # mesures px si shape == cylinder
     revolution: Optional[dict] = None         # demi-profil px si shape == revolution
     circle: Optional[dict] = None             # cercle px si shape == circle
+    vessel: Optional[dict] = None             # réservoir px si shape == vessel
     drawings: list[dict] = []                 # dessins trouvés sur la feuille
     drawing: Optional[int] = None             # dessin traité
     choices: list[str] = []                   # interprétations possibles si un choix est requis

@@ -36,6 +36,8 @@ def _size(out: Path):
         return [s["diameter"]] * 3
     if sh == "disc":
         return [s["diameter"], s["diameter"], s["thickness"]]
+    if sh == "vessel":
+        return [s["diameter"], s["diameter"], s["total_height"]]
     xs = [q[0] for q in s["points"]]
     ys = [q[1] for q in s["points"]]
     if sh == "revolution":
@@ -62,6 +64,19 @@ def judge(k: dict, rep: dict, size) -> tuple[str, str]:
         return ("ok", "✓ dessin ouvert signalé, pas de solide") if rep.get("shape") == "open" else \
                ("bad", f"✗ forme {rep.get('shape')} au lieu de « dessin ouvert »")
     got = " × ".join(f"{v:g}" for v in size) if size else "—"
+    if code == "vessel":
+        v = rep.get("vessel") or {}
+        shape_ok = rep.get("shape") == "vessel"
+        size_ok = _close(size, k.get("size"))
+        parts_ok = shape_ok and v.get("openings") == k.get("openings") and v.get("nozzles") == k.get("nozzles") \
+            and bool(v.get("legs")) == bool(k.get("legs"))
+        got = " × ".join(f"{x:g}" for x in size) if size else "—"
+        detail = f"{v.get('openings', 0)} ouverture(s), {v.get('nozzles', 0)} piquage(s), {v.get('legs', 0)} pied(s)"
+        if shape_ok and size_ok and parts_ok:
+            return "ok", f"✓ {got} mm ; {detail}"
+        why = ([] if shape_ok else [f"forme {rep.get('shape') or 'plate'}"]) + \
+              ([] if size_ok else [f"obtenu {got} mm"]) + ([] if parts_ok else [detail])
+        return ("part" if size_ok else "bad"), ("~ " if size_ok else "✗ ") + " ; ".join(why)
     shape_ok = (code == "prism" and rep.get("shape") in (None, "prism")) or \
                (code == "cylinder" and rep.get("shape") in ("cylinder", "revolution")) or \
                (code == "revolution" and rep.get("shape") == "revolution")

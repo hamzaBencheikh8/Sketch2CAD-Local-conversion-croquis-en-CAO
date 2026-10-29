@@ -31,7 +31,7 @@ def _clean(binary: np.ndarray) -> np.ndarray:
     return keep
 
 
-def _vertical_lines(strokes: np.ndarray) -> list[dict]:
+def _vertical_lines(strokes: np.ndarray, tol: float = 0.02) -> list[dict]:
     """Segments quasi verticaux fusionnés : [{'x', 'y0', 'y1', 'len'}]."""
     H, W = strokes.shape
     S = max(H, W)
@@ -44,11 +44,11 @@ def _vertical_lines(strokes: np.ndarray) -> list[dict]:
         ang = abs(math.degrees(math.atan2(y2 - y1, x2 - x1)))
         if abs(ang - 90) < 14:
             vs.append((min(y1, y2), max(y1, y2), (x1 + x2) / 2))
-    # regroupe les segments alignés (même x à ±2 % de l'image)
+    # regroupe les segments alignés (même x à ±tol de l'image, 2 % par défaut)
     vs.sort(key=lambda s: s[2])
     groups: list[list] = []
     for s in vs:
-        if groups and abs(s[2] - np.mean([g[2] for g in groups[-1]])) < 0.02 * S:
+        if groups and abs(s[2] - np.mean([g[2] for g in groups[-1]])) < tol * S:
             groups[-1].append(s)
         else:
             groups.append([s])

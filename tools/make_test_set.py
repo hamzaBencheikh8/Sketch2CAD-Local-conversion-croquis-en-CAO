@@ -1,6 +1,6 @@
 """Génère un jeu de croquis de test « à main levée », HORS ÉCHELLE, avec leur corrigé.
 
-    python tools/make_test_set.py croquis_test
+    python tools/make_test_set.py croquis_test   (18 croquis)
 
 Chaque croquis a une vérité terrain (attendu.json) : dimensions exactes, forme, perçages.
 Les tracés sont volontairement déformés (proportions fausses, traits tremblés) : seules
@@ -246,6 +246,51 @@ def draw_frustum(sh: Sheet, c, D1_px, D2_px, H_px, d1_txt, d2_txt, h_txt):
 
 # --------------------------------------------------------------------------- photos
 
+def draw_vessel(sh: Sheet, v: dict) -> None:
+    """Réservoir vertical vu de face : corps, deux fonds bombés, ouvertures à bride, piquages, pieds.
+
+    v : cx, a (demi-largeur px), yb / yt (bas / haut du corps, y vers le haut), kt / kb (profondeur
+    des fonds / a), openings [(dx, y, r_in, r_out|None, texte|None)], top [(dx, w, h)],
+    bottom [(dx, w, h)], legs (dx, y_sol) | None, textes D / H / R / ep et côté de la cote H.
+    """
+    cx, a, yb, yt = v["cx"], v["a"], v["yb"], v["yt"]
+    t = np.radians(np.linspace(0, 180, 70))
+    top = [(cx + a * math.cos(u), yt + v["kt"] * a * math.sin(u)) for u in t]
+    bot = [(cx - a * math.cos(u), yb - v["kb"] * a * math.sin(u)) for u in t]
+    sh.stroke([(cx + a, yb), (cx + a, yt)] + top + [(cx - a, yb)] + bot, sh.thick, closed=True)
+    head_t = lambda x: yt + v["kt"] * a * math.sqrt(max(0.0, 1 - ((x - cx) / a) ** 2))
+    head_b = lambda x: yb - v["kb"] * a * math.sqrt(max(0.0, 1 - ((x - cx) / a) ** 2))
+    for dx, y, r1, r2, txt in v.get("openings", []):
+        sh.ellipse((cx + dx, y), r1, r1, sh.thick)
+        if r2:
+            sh.ellipse((cx + dx, y), r2, r2, sh.thick)
+        if txt:
+            sh.text(txt, (cx + dx, y - (r2 or r1) - 40))
+    for dx, w, h in v.get("top", []):
+        x0, x1 = cx + dx - w / 2, cx + dx + w / 2
+        sh.stroke([(x0, head_t(x0) - 2), (x0, head_t(cx + dx) + h), (x1, head_t(cx + dx) + h), (x1, head_t(x1) - 2)], sh.thick)
+    for dx, w, h in v.get("bottom", []):
+        x0, x1 = cx + dx - w / 2, cx + dx + w / 2
+        sh.stroke([(x0, head_b(x0) + 2), (x0, head_b(cx + dx) - h), (x1, head_b(cx + dx) - h), (x1, head_b(x1) + 2)], sh.thick)
+    if v.get("legs"):
+        dx, yg = v["legs"]
+        for x in (cx - dx, cx + dx):
+            sh.stroke([(x, head_b(x) + 4), (x, yg)], sh.thick)
+    side = 1 if v.get("h_side", "right") == "right" else -1
+    xe = cx + side * (a + 70)
+    sh.line((cx + side * (a + 12), yt), (xe + side * 14, yt)); sh.line((cx + side * (a + 12), yb), (xe + side * 14, yb))
+    sh.arrow_dim((xe, yt), (xe, yb))
+    sh.text(v["H"], (xe + side * (30 + 14 * len(v["H"])), (yt + yb) / 2))
+    yd = v.get("d_y", yt - 0.25 * (yt - yb))
+    sh.arrow_dim((cx - a, yd), (cx + a, yd)); sh.text(v["D"], (cx, yd + 40))
+    if v.get("R"):
+        xr = cx + 0.7 * a
+        sh.line((xr, head_t(xr)), (cx + a + 40, yt + v["kt"] * a + 60))
+        sh.text(v["R"], (cx + a + 40 + 14 * len(v["R"]), yt + v["kt"] * a + 70))
+    if v.get("ep"):
+        sh.text(v["ep"], (max(120, cx - a - 140), max(80, yb - v["kb"] * a - 60)))
+
+
 def as_photo(flat: np.ndarray, seed=3) -> np.ndarray:
     """Feuille posée en biais sur une table, éclairage inégal, ombre douce."""
     rng = np.random.default_rng(seed)
@@ -343,6 +388,31 @@ CASES = [
          expect=dict(shape="pièce plate", size=[100, 60, 4], holes=["Ø16"],
                      volume_mm3=100 * 60 * 4 - math.pi * 64 * 4),
          what="Contour et cotation au même stylo : séparation contour / cotes plus difficile."),
+    dict(file="15_cuve_complete.png", code="vessel", font=1, ink=1, kind="vessel",
+         spec=dict(cx=560, a=220, yb=560, yt=1100, kt=0.5, kb=0.5, openings=[(0, 760, 70, 100, "Ø400")],
+                   top=[(-105, 50, 50), (0, 36, 40)], legs=(190, 200), D="Ø1200", H="1400", R="R1200", d_y=960),
+         expect=dict(shape="réservoir", size=[1200, 1200, round(1400 + 2 * (1200 - math.sqrt(1200 ** 2 - 600 ** 2)), 3)],
+                     openings=1, nozzles=2, legs=True,
+                     note="corps Ø1200 × 1400, fonds R1200 (flèche 160,8), trou d'homme Ø400 à bride, 2 piquages, pieds"),
+         what="Cuve complète : deux fonds bombés R1200, trou d'homme à bride, deux piquages, pieds."),
+    dict(file="16_cuve_hemispherique.png", code="vessel", font=0, ink=0, kind="vessel",
+         spec=dict(cx=600, a=200, yb=520, yt=980, kt=1.0, kb=1.0, top=[(0, 44, 60)], D="Ø800", H="1000",
+                   R="R400", ep="ep 6", h_side="left", d_y=900),
+         expect=dict(shape="réservoir", size=[800, 800, 1800], openings=0, nozzles=1, legs=False,
+                     note="corps Ø800 × 1000, fonds hémisphériques R400, paroi 6 mm, un piquage"),
+         what="Cuve à fonds hémisphériques, paroi cotée « ep 6 », un piquage, hauteur cotée à gauche."),
+    dict(file="17_cuve_sur_pieds.png", code="vessel", font=2, ink=2, kind="vessel",
+         spec=dict(cx=580, a=210, yb=520, yt=1180, kt=0.45, kb=0.45,
+                   openings=[(0, 900, 80, 115, "Ø450"), (110, 640, 32, None, None)], top=[(-90, 40, 45), (80, 40, 45)],
+                   bottom=[(0, 40, 40)], legs=(170, 150), D="Ø1000", H="1800", R="R1000", d_y=1080),
+         expect=dict(shape="réservoir", size=[1000, 1000, round(1800 + 2 * (1000 - math.sqrt(1000 ** 2 - 500 ** 2)), 3)],
+                     openings=2, nozzles=3, legs=True,
+                     note="corps Ø1000 × 1800, fonds R1000, trou d'homme Ø450 + petit piquage radial, 2 piquages en haut, 1 vidange, pieds"),
+         what="Cuve sur pieds : deux ouvertures en façade, piquages en haut et vidange en bas."),
+    dict(file="18_cuve_photo.jpg", code="vessel", font=2, ink=2, kind="photo_of", of="17_cuve_sur_pieds.png",
+         expect=dict(shape="réservoir", size=[1000, 1000, round(1800 + 2 * (1000 - math.sqrt(1000 ** 2 - 500 ** 2)), 3)],
+                     openings=2, nozzles=3, legs=True),
+         what="Le croquis 17 photographié en biais."),
 ]
 
 
@@ -365,6 +435,9 @@ def make(case: dict, out: Path, made: dict) -> np.ndarray:
         draw_capsule(sh, (780, 560), 340, 380, "R20", "60", "Ø40")
     elif k == "frustum":
         draw_frustum(sh, (780, 600), 520, 230, 420, "Ø60", "Ø30", "50")
+    elif k == "vessel":
+        sh = Sheet(W=1200, H=1600, seed=seed, font=case["font"], ink=case["ink"], thick=pen or 4, thin=pen or 2)
+        draw_vessel(sh, case["spec"])
     elif k == "circle":
         sh.ellipse((800, 600), 300, 296, sh.thick)
         sh.text("Ø50", (800, 600))
@@ -417,6 +490,9 @@ def write_corrige(out: Path, key: list[dict], results: dict | None = None, title
             rows.append(("Sommets", k["vertices"]))
         if k.get("holes"):
             rows.append(("Perçages", ", ".join(k["holes"])))
+        if "openings" in k:
+            rows.append(("Accessoires", f"{k['openings']} ouverture(s), {k['nozzles']} piquage(s), "
+                                        f"{'pieds' if k.get('legs') else 'sans pieds'}"))
         if k.get("fillets"):
             rows.append(("Congés", ", ".join(k["fillets"])))
         if k.get("volume_mm3"):

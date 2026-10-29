@@ -125,9 +125,10 @@ Pour court-circuiter l'OCR, on peut aussi fournir les cotes à la main : `run cr
 
 ## Croquis de test (avec corrigé)
 
-Le dossier `croquis_test/` contient 14 croquis « à main levée », hors échelle, avec leur résultat attendu :
+Le dossier `croquis_test/` contient 18 croquis « à main levée », hors échelle, avec leur résultat attendu :
 plaques (rectangle, L, congés, angle, cotes en cm), cylindre, gélule, tronc de cône, cercle seul,
-feuille à 3 dessins, dessin ouvert, photo en biais, petite capture d'écran, croquis à un seul stylo.
+feuille à 3 dessins, dessin ouvert, photo en biais, petite capture d'écran, croquis à un seul stylo,
+et quatre réservoirs (fonds bombés, trou d'homme, piquages, pieds, photo en biais).
 
 - `croquis_test/corrige.html` : chaque croquis, ce qu'il teste et les valeurs attendues ;
 - `croquis_test/croquis_a_imprimer.pdf` : à imprimer puis photographier, pour tester une vraie photo ;
@@ -151,10 +152,21 @@ Le croquis d'exemple (`examples/sketch_photo.jpg`, feuille photographiée en bia
 | Pièce plate (extrusion) | contour fermé vu de dessus | longueurs, angles, `R`, `Ø` des perçages, `ep` |
 | Cylindre | deux génératrices + ellipses des bases | `r=` / `Ø` dans une base, hauteur écrite à côté |
 | Corps de révolution (gélule, cône, tronc, hémisphère, bouteille…) | silhouette symétrique + ellipse de base ou dôme | `r=` du dôme, longueur à côté d'un flanc, angle, `Ø` d'une base |
+| Réservoir / cuve | corps cylindrique + deux fonds bombés, avec ouvertures à bride, piquages, pieds | `Ø` du corps, hauteur droite à côté, `R` des fonds, `Ø` des ouvertures, `ep` de paroi |
 | Cercle seul | contour circulaire | `r=` ou `Ø` ; **l'interface demande : sphère ou disque ?** |
 | Dessin ouvert (un « V », un arc) | contour non fermé | signalé : pas de solide possible |
 
 Unités m, cm, mm : une cote sans unité prend celle des autres cotes du dessin.
+
+## Réservoirs (cuves, ballons)
+
+Un réservoir vertical dessiné de face est reconnu automatiquement : corps cylindrique, fond bombé en
+haut et en bas (calotte sphérique de rayon `R`), ouvertures en façade (un cercle ; deux cercles
+concentriques = trou d'homme à bride), piquages en « ⊓ » sur le fond du haut ou en « ⊔ » sous le fond
+du bas, et pieds (traits verticaux jusqu'au sol). Le solide produit est une **coque creuse** d'épaisseur
+`ep` (5 mm par défaut), avec cols, brides, piquages percés et 4 pieds à 90°. Ce qui n'est pas coté (Ø
+d'un piquage, hauteur des pieds…) est mesuré à l'échelle du dessin et signalé ; tout se corrige dans
+l'onglet **Cotes**. Exemples : `croquis_test/15_cuve_complete.png` à `18_cuve_photo.jpg`.
 
 ## Feuille avec plusieurs dessins
 
@@ -170,4 +182,4 @@ Un texte illisible ou l'absence de cote donne toujours le statut « À VÉRIFIER
 
 ## Limites de la v1
 
-Pas encore : pièces combinant plusieurs formes (perçage dans un cylindre, assemblages), poches, chanfreins, tôlerie pliée, vues multiples. Les angles de révolution sont pris comme angles intérieurs du profil (un avertissement signale un écart > 30° avec le dessin). Cotes de position des perçages par l'heuristique (le VLM peut les fournir ; sinon position d'après le dessin, signalée dans le rapport).
+Pas encore : pièces combinant plusieurs formes hors réservoirs (perçage dans un cylindre, assemblages), poches, chanfreins, tôlerie pliée, vues multiples. Les angles de révolution sont pris comme angles intérieurs du profil (un avertissement signale un écart > 30° avec le dessin). Cotes de position des perçages par l'heuristique (le VLM peut les fournir ; sinon position d'après le dessin, signalée dans le rapport).

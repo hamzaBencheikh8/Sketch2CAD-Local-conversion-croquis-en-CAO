@@ -403,6 +403,18 @@ def perceive(image_path: str | Path, out_dir: Path, ocr_backends: list[str],
     base["drawing"] = drawing
     clean = _mask_text(binary, dims, pad=sw)
 
+    # contour au trait fort et cotation au trait fin : la silhouette ne doit pas englober les lignes de cote
+    strong_r, _sw_r, thr_r = split_strokes(clean, norm)
+
+    # ---- réservoir / cuve (corps + deux fonds bombés + accessoires) : avant le cylindre, car
+    # ses fonds bombés peuvent passer pour des bases elliptiques ; un vrai cylindre a un arc arrière
+    from .vessel import detect_vessel, draw_vessel_som
+    ves = detect_vessel(strong_r if thr_r is not None else clean)
+    if ves is not None:
+        cv2.imencode(".png", draw_vessel_som(img, ves, dims))[1].tofile(str(out_dir / "som.png"))
+        log.info("Perception : réservoir")
+        return save(Perception(**base, dimensions=dims, shape="vessel", vessel=ves)), img
+
     # ---- cylindre en perspective
     cyl = detect_cylinder(clean)
     if cyl is not None:
@@ -421,8 +433,6 @@ def perceive(image_path: str | Path, out_dir: Path, ocr_backends: list[str],
                                choices=["sphere", "disc"])), img
 
     # ---- corps de révolution
-    # contour au trait fort et cotation au trait fin : la silhouette ne doit pas englober les lignes de cote
-    strong_r, _sw_r, thr_r = split_strokes(clean, norm)
     # silhouette au trait fort d'abord ; si le croquis est tracé d'un seul stylo, la séparation
     # forte/fine peut morceler le contour : on retente alors avec tous les traits
     rev = detect_revolution(strong_r) if thr_r is not None else None
