@@ -70,7 +70,7 @@ class Perception(BaseModel):
 
 ConstraintType = Literal[
     "length", "angle", "horizontal", "vertical", "perpendicular", "parallel",
-    "fillet", "diameter", "distance", "arc_radius", "arc_tangent", "radius_at",
+    "fillet", "diameter", "distance", "arc_radius", "arc_tangent", "radius_at", "height",
 ]
 
 

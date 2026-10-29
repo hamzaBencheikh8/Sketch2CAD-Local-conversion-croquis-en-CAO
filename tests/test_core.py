@@ -395,3 +395,30 @@ def test_api_profile_falls_back_to_local_ocr(tmp_path, monkeypatch):
     assert texts[0]["raw"] == "150"
     assert cloud.make_text_reader(load_config(profile="offline")) is None
     json.dumps(note)
+
+
+def test_ocr_confusions_on_handwritten_dimensions():
+    from sketch2cad.ocr import parse_dimension
+    assert parse_dimension("ØIO") == ("diameter", 10.0)      # I, O lus à la place de 1, 0
+    assert parse_dimension("〇08") == ("diameter", 8.0)      # perçage collé à sa cote « Ø8 »
+    assert parse_dimension("R1O") == ("radius", 10.0)
+    assert parse_dimension("060") == ("ambiguous", 60.0)      # Ø lu comme 0
+    assert parse_dimension("0,5") == ("length", 0.5)
+    assert parse_dimension("Roo") is None
+
+
+def test_solver_height_constraint_on_slanted_edge():
+    """Cote verticale d'un flanc incliné (tronc de cône) : hauteur, pas longueur du flanc."""
+    from sketch2cad.schema import Constraint, Edge, Graph, Vertex
+    from sketch2cad.solver import solve
+    px = [(0, 300), (260, 300), (110, 0), (0, 0)]                # demi-profil px (y vers le bas)
+    V = [Vertex(id=f"V{i + 1}", px=p) for i, p in enumerate(px)]
+    E = [Edge(id=f"E{i + 1}", a=V[i].id, b=V[(i + 1) % 4].id) for i in range(4)]
+    cons = [Constraint(type="vertical", edge="E4"), Constraint(type="horizontal", edge="E1"),
+            Constraint(type="horizontal", edge="E3"),
+            Constraint(type="length", edge="E1", value=30), Constraint(type="length", edge="E3", value=15),
+            Constraint(type="height", edge="E2", value=50)]
+    sol = solve(Graph(vertices=V, edges=E, constraints=cons, thickness=0, method="revolution"))
+    ys = [p[1] for p in sol.points]
+    assert abs(max(ys) - min(ys) - 50) < 1e-6
+    assert abs(max(p[0] for p in sol.points) - 30) < 1e-6

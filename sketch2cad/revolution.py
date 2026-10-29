@@ -123,6 +123,15 @@ def detect_revolution(strokes_in: np.ndarray) -> Optional[dict]:
             while i > 0 and r[i] < ref:
                 i -= 1
             cut_bot = float(rows[i, 0])
+            # base elliptique dont l'arc arrière est en pointillés (non détectée comme ellipse) :
+            # sous la ligne la plus large, la silhouette se referme en demi-ellipse -> la face
+            # plane est au niveau de la largeur maximale, pas au bas du dessin
+            i_max = int(np.nonzero(r >= 0.98 * tail.max())[0][-1])
+            depth = y_bot - float(rows[i_max, 0])
+            if i_max >= int(0.8 * n_) and 0.08 * tail.max() < depth < 0.6 * tail.max() and r[-1] < 0.85 * tail.max():
+                cut_bot = float(rows[i_max, 0])
+                bot_ell = {"cx": x_axis, "cy": cut_bot, "major": 2 * float(r[i_max]), "minor": 2 * depth,
+                           "top": cut_bot - depth, "bottom": y_bot, "from_profile": True}
     # les lignes couvertes par une ellipse de base appartiennent à l'ellipse, pas au flanc
     lo = cut_top + (top_ell["minor"] / 2 if top_ell else 0)
     hi = cut_bot - (bot_ell["minor"] / 2 if bot_ell else 0)
@@ -135,6 +144,13 @@ def detect_revolution(strokes_in: np.ndarray) -> Optional[dict]:
     dome = None
     if not top_ell:
         dome = _fit_dome(prof_y, prof_r)
+        if dome is not None:
+            # un dôme est centré sur l'axe ; une pointe de ligne de cote qui dépasse sur le
+            # côté (plaque trapézoïdale) donne un faux « dôme » décentré
+            sel_d = rows[:, 0] <= y_top + 0.4 * (dome["end_y"] - y_top)  # haut de la calotte
+            dev = np.abs(centers[sel_d] - x_axis)
+            if dev.size == 0 or np.median(dev) > 0.12 * r.max():
+                dome = None
     has_3d_cue = bool(ells) or dome is not None
     if not has_3d_cue:
         return None
@@ -213,6 +229,16 @@ def half_profile(rev: dict) -> tuple[list[tuple[float, float]], Optional[int]]:
             i += 1
     if len(pts) > 2 and math.dist(pts[1], pts[2]) < lim:
         pts.pop(2)
+    # second passage : les suppressions ci-dessus peuvent rendre deux segments alignés
+    i = 2
+    while i < len(pts) - 1:
+        a, b, c = np.array(pts[i - 1]), np.array(pts[i]), np.array(pts[i + 1])
+        u, v = b - a, c - b
+        cosang = float(np.dot(u, v) / (np.linalg.norm(u) * np.linalg.norm(v) + 1e-9))
+        if cosang > math.cos(math.radians(15)):
+            pts.pop(i)
+        else:
+            i += 1
     arc_edge = None
     if dome:
         arc_edge = len(pts) - 1  # arête du dernier point du profil vers le sommet E
@@ -280,6 +306,13 @@ def build_revolution_graph(rev: dict, dims: list[Dimension], default_unit_note: 
         if d.kind == "radius" and arc_edge is not None and d.kind != "diameter":
             cons.append(Constraint(type="arc_radius", edge=E[arc_edge].id, value=d.value, source=d.id))
             continue
+        # nombre écrit sous la base (ou au-dessus du sommet), centré sur l'axe : c'est le Ø de
+        # cette base (le « Ø » manuscrit est souvent perdu par l'OCR), pas une longueur de flanc
+        rmax = max(p[0] for p in pts) - xa
+        beyond = (cy > rev["y_bot"] or cy < rev["y_top"]) and abs(cx - xa) < 0.6 * rmax
+        if d.kind in ("length", "ambiguous") and beyond and not near_ell:
+            near_ell = True
+            warns.append(f"{d.id} « {d.raw} » écrit sous/sur une base, dans l'axe : lu comme son diamètre.")
         if d.kind in ("diameter", "radius") or (d.kind in ("length", "ambiguous") and near_ell):
             val = d.value / 2 if d.kind != "radius" else d.value
             # bord plan le plus proche ; à défaut, rayon au sommet de profil le plus proche
@@ -296,7 +329,16 @@ def build_revolution_graph(rev: dict, dims: list[Dimension], default_unit_note: 
         if d.kind in ("length", "ambiguous"):
             free = [k for k in profile_edges if k not in used_edges] or profile_edges
             k = min(free, key=lambda i: _seg_cost((mx, cy), pts[i], pts[i + 1]))
-            cons.append(Constraint(type="length", edge=E[k].id, value=d.value, source=d.id))
+            a, b = np.array(pts[k]), np.array(pts[k + 1])
+            tilt = abs(math.degrees(math.atan2(b[0] - a[0], b[1] - a[1] + 1e-9)))
+            tilt = min(tilt, 180 - tilt)
+            if 10 < tilt < 70 and mx > max(a[0], b[0]):
+                # flanc incliné (cône) coté de l'extérieur : cote verticale = hauteur du flanc
+                cons.append(Constraint(type="height", edge=E[k].id, value=d.value, source=d.id,
+                                       note="hauteur du flanc incliné"))
+                warns.append(f"{d.id} « {d.raw} » à côté d'un flanc incliné : lu comme sa hauteur (cote verticale).")
+            else:
+                cons.append(Constraint(type="length", edge=E[k].id, value=d.value, source=d.id))
             used_edges.add(k)
             if d.kind == "ambiguous":
                 warns.append(f"{d.id} « {d.raw} » : lu comme la longueur de {E[k].id} (position sur le dessin).")

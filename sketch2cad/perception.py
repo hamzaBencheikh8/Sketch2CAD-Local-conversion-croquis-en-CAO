@@ -191,6 +191,34 @@ def extract_outline(binary: np.ndarray, sw: float) -> tuple[np.ndarray, np.ndarr
     return poly, filled
 
 
+def extract_outline_faces(binary: np.ndarray, sw: float) -> Optional[tuple[np.ndarray, np.ndarray]]:
+    """Variante quand contour et cotation ont la même épaisseur (un seul stylo).
+
+    Les lignes de cote et leurs lignes d'attache forment avec le bord de la pièce des bandes
+    fermées étroites ; la pièce est la plus grande « face » (zone blanche enclose par les traits),
+    pas l'enveloppe extérieure de tous les traits. Retourne None si aucune face n'est trouvée.
+    """
+    k = max(3, int(round(sw * 1.5)) | 1)
+    closed = cv2.morphologyEx(binary, cv2.MORPH_CLOSE, np.ones((k, k), np.uint8))
+    n, lab, st, _ = cv2.connectedComponentsWithStats(cv2.bitwise_not(closed), 4)
+    border = set(np.unique(np.r_[lab[0], lab[-1], lab[:, 0], lab[:, -1]]).tolist())
+    faces = [i for i in range(1, n) if i not in border]
+    if not faces:
+        return None
+    f = max(faces, key=lambda i: st[i, cv2.CC_STAT_AREA])
+    face = (lab == f).astype(np.uint8) * 255
+    cnts, _ = cv2.findContours(face, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    filled = np.zeros_like(binary)
+    cv2.drawContours(filled, [max(cnts, key=cv2.contourArea)], -1, 255, -1)   # perçages rebouchés
+    g = max(3, int(round(sw)) | 1)                                            # jusqu'au milieu du trait
+    filled = cv2.dilate(filled, cv2.getStructuringElement(cv2.MORPH_ELLIPSE, (g, g)))
+    cnts, _ = cv2.findContours(filled, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_NONE)
+    c = max(cnts, key=cv2.contourArea)
+    peri = cv2.arcLength(c, True)
+    poly = cv2.approxPolyDP(c, 0.012 * peri, True).reshape(-1, 2).astype(float)
+    return _clean_polygon(poly, peri), filled
+
+
 def _clean_polygon(poly: np.ndarray, peri: float) -> np.ndarray:
     """Fusionne les sommets trop proches (congés dessinés) et supprime les sommets plats."""
     changed = True
@@ -231,6 +259,13 @@ def _line_intersection(p1, p2, p3, p4) -> Optional[np.ndarray]:
     return p1 + t * d1
 
 
+def _char_height(d: Dimension) -> float:
+    """Hauteur d'un caractère de la cote (la boîte peut englober un perçage voisin)."""
+    x0, y0, x1, y1 = d.bbox
+    n = max(1, len(d.raw.replace(" ", "")))
+    return min(y1 - y0, 1.6 * (x1 - x0) / n)
+
+
 def extract_circles(binary: np.ndarray, filled: np.ndarray, sw: float,
                     dims: list[Dimension], part_diag: float) -> list[tuple[float, float, float]]:
     """Perçages = régions intérieures quasi circulaires délimitées par un trait fermé."""
@@ -252,8 +287,9 @@ def extract_circles(binary: np.ndarray, filled: np.ndarray, sw: float,
         (cx, cy), r_enc = cv2.minEnclosingCircle(c)
         if circ < 0.75 or area < 0.6 * np.pi * r_enc ** 2:
             continue
-        if any(d.bbox[0] <= cx <= d.bbox[2] and d.bbox[1] <= cy <= d.bbox[3] for d in dims):
-            continue  # boucle d'un chiffre (0, 8, 9...)
+        if any(d.bbox[0] <= cx <= d.bbox[2] and d.bbox[1] <= cy <= d.bbox[3]
+               and r_area < 0.35 * _char_height(d) for d in dims):
+            continue  # boucle d'un chiffre (0, 8, 9...) ; un perçage collé à sa cote reste un perçage
         out.append((float(cx), float(cy), float(r_area + sw / 2)))
     return out
 
@@ -405,13 +441,25 @@ def perceive(image_path: str | Path, out_dir: Path, ocr_backends: list[str],
         return save(Perception(**base, dimensions=dims, shape="open")), img
 
     strong, sw_strong, thr = split_strokes(clean, norm)
-    if thr is None:
-        warnings.append("Traits forts/fins non distingués : repassez le contour au trait épais "
-                        "pour séparer le contour de la cotation.")
-    else:
+    if thr is not None:
         sw = sw_strong
         log.info("Traits forts > %.1f px (contour), traits fins (cotation) écartés", thr)
-    poly, filled = extract_outline(strong, sw)
+        poly, filled = extract_outline(strong, sw)
+        # contour morcelé par la séparation fort/fin (petite capture agrandie : toutes les
+        # épaisseurs se ressemblent) : la « pièce » trouvée n'est qu'un fragment -> tous les traits
+        poly_all, filled_all = extract_outline(clean, stroke_width(clean))
+        if len(poly) < 3 or cv2.countNonZero(filled) < 0.4 * cv2.countNonZero(filled_all):
+            log.info("Séparation fort/fin inexploitable (contour morcelé) : tous les traits sont gardés")
+            thr, sw = None, stroke_width(clean)
+    if thr is None:
+        # un seul stylo : la pièce est la plus grande zone fermée, pas l'enveloppe des traits
+        poly, filled = extract_outline(clean, sw)
+        fac = extract_outline_faces(clean, sw)
+        if fac is not None and len(fac[0]) >= 3 and cv2.countNonZero(fac[1]) >= 0.5 * cv2.countNonZero(filled):
+            poly, filled = fac
+        else:
+            warnings.append("Traits forts/fins non distingués : repassez le contour au trait épais "
+                            "pour séparer le contour de la cotation.")
     # orientation CCW dans le repère y-haut  <=>  aire signée négative en pixels (y-bas)
     area_px = 0.5 * np.sum(poly[:, 0] * np.roll(poly[:, 1], -1) - np.roll(poly[:, 0], -1) * poly[:, 1])
     if area_px > 0:

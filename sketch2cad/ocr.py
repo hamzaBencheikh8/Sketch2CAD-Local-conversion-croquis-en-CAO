@@ -86,16 +86,31 @@ def parse_dimension_ex(text: str) -> Optional[tuple[str, float, Optional[str]]]:
     return None if r is None else (r[0], r[1], unit)
 
 
+# chiffres manuscrits souvent lus comme des lettres, après un préfixe (« ØIO » = Ø10)
+_NUMLIKE = r"([0-9OoIl|SB]+(?:[.,][0-9OoIl|SB]+)?)"
+# un perçage dessiné juste au-dessus de sa cote est parfois lu comme un rond « 〇 » collé au texte
+_CIRCLES = "〇○◯◦"
+
+
+def _fixed_num(s: str) -> Optional[float]:
+    f = s.translate(_FIXES)
+    return _num(f) if re.fullmatch(_NUM, f) else None
+
+
 def _parse_plain(t: str) -> Optional[tuple[str, float]]:
-    m = re.fullmatch(_THICK_PREFIX + r"[:=]?" + _NUM, t, flags=re.IGNORECASE)
-    if m:
-        return "thickness", _num(m.group(1))
-    m = re.fullmatch(_DIAM_PREFIX + r"[:=]?" + _NUM, t)
-    if m:
-        return "diameter", _num(m.group(1))
-    m = re.fullmatch(r"[Rr][:=]?" + _NUM, t)
-    if m:
-        return "radius", _num(m.group(1))
+    if t and t[0] in _CIRCLES and len(t) > 1:
+        t = "Ø" + t[1:].lstrip(_CIRCLES)
+        if re.fullmatch(r"Ø0\d+", t):      # « 〇08 » : le rond est le perçage, « 0 » est le Ø écrit
+            t = "Ø" + t[2:]
+    m = re.fullmatch(_THICK_PREFIX + r"[:=]?" + _NUMLIKE, t, flags=re.IGNORECASE)
+    if m and _fixed_num(m.group(1)) is not None:
+        return "thickness", _fixed_num(m.group(1))
+    m = re.fullmatch(_DIAM_PREFIX + r"[:=]?" + _NUMLIKE, t)
+    if m and _fixed_num(m.group(1)):
+        return "diameter", _fixed_num(m.group(1))
+    m = re.fullmatch(r"[Rr][:=]?" + _NUMLIKE, t)
+    if m and _fixed_num(m.group(1)):
+        return "radius", _fixed_num(m.group(1))
     m = re.fullmatch(_NUM + _DEG_SUFFIX, t)
     if m:
         v = _num(m.group(1))
@@ -125,9 +140,12 @@ def _paddle(img: np.ndarray):
     try:
         _PADDLE
     except NameError:
-        try:  # PaddleOCR 3.x ; oneDNN désactivé (bug de certaines versions CPU)
+        # PaddleOCR 3.x ; oneDNN désactivé (bug de certaines versions CPU). Pas de classifieur
+        # d'orientation : sur un croquis les cotes sont écrites à l'endroit, et ce classifieur
+        # retournait des textes nets (« 100 » lu « OOI », « ep 6 » lu « 9 da »).
+        try:
             _PADDLE = PaddleOCR(use_doc_orientation_classify=False, use_doc_unwarping=False,
-                                use_textline_orientation=True, lang="en", enable_mkldnn=False)
+                                use_textline_orientation=False, lang="en", enable_mkldnn=False)
         except (TypeError, ValueError):  # PaddleOCR 2.x
             _PADDLE = PaddleOCR(use_angle_cls=True, lang="en", show_log=False)
     if img.ndim == 2:

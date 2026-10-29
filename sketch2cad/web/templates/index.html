@@ -475,9 +475,9 @@ async function loadCotes(id){
   graphInfo = await (await fetch(`/api/jobs/${id}/graph`)).json();
   const names = {length:"longueur", angle:"angle (°)", fillet:"congé R", diameter:"diamètre Ø",
                  cyl_diameter:"diamètre Ø du cylindre (mm)", cyl_height:"hauteur du cylindre (mm)",
-                 arc_radius:"rayon du dôme R", radius_at:"rayon (Ø/2) à ce sommet",
+                 arc_radius:"rayon du dôme R", radius_at:"rayon (Ø/2) à ce sommet", height:"hauteur (cote verticale)",
                  circ_radius:"rayon (mm)", circ_thickness:"épaisseur du disque (mm)"};
-  const opts = t => (t === "length" || t === "arc_radius") ? graphInfo.edges : t === "diameter" ? graphInfo.circles : graphInfo.vertices;
+  const opts = t => (t === "length" || t === "arc_radius" || t === "height") ? graphInfo.edges : t === "diameter" ? graphInfo.circles : graphInfo.vertices;
   const fixed = t => t.startsWith("cyl_") || t.startsWith("circ_");
   $("#cot").innerHTML = graphInfo.rows.map(r => `<tr data-i="${r.index}">
     <td class="mono">${esc(r.source || "—")}</td><td>${names[r.type]}${r.note ? ` <small title="${esc(r.note)}">✎</small>` : ""}</td>

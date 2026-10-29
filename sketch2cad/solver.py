@@ -99,6 +99,9 @@ class _Problem:
             elif c.type == "arc_tangent" and c.edge in self.eidx:
                 i, j = self.eidx[c.edge]  # dôme hémisphérique : hauteur = rayon en D
                 out.append((c, lambda P, C, i=i, j=j: (P[j][1] - P[i][1]) - (P[i][0] - P[j][0])))
+            elif c.type == "height" and c.edge in self.eidx:
+                i, j = self.eidx[c.edge]  # étendue verticale d'une arête (cote verticale d'un flanc incliné)
+                out.append((c, lambda P, C, i=i, j=j, h=c.value: abs(P[j][1] - P[i][1]) - h))
             elif c.type == "radius_at" and c.vertex in self.vidx:
                 k = self.vidx[c.vertex]  # distance à l'axe (V1 sur l'axe, x = 0)
                 out.append((c, lambda P, C, k=k, v=c.value: P[k][0] - P[0][0] - v))
@@ -128,6 +131,11 @@ def _estimate_scale(pb: _Problem, g: Graph) -> tuple[float, list[str]]:
             dx = abs(pb.drawn[i][0] - pb.drawn[j][0])
             if dx > 1:
                 ratios.append(c.value / dx)
+        if c.type == "height" and c.edge in pb.eidx:
+            i, j = pb.eidx[c.edge]
+            dy = abs(pb.drawn[j][1] - pb.drawn[i][1])
+            if dy > 1:
+                ratios.append(c.value / dy)
         if c.type == "radius_at" and c.vertex in pb.vidx:
             dx = abs(pb.drawn[pb.vidx[c.vertex]][0] - pb.drawn[0][0])
             if dx > 1:

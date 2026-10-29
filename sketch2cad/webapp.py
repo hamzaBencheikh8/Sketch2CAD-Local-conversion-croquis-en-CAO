@@ -27,7 +27,7 @@ log = logging.getLogger(__name__)
 ROOT = Path(__file__).resolve().parent.parent
 EXAMPLE = ROOT / "examples" / "sketch_photo.jpg"
 ALLOWED = {".jpg", ".jpeg", ".png", ".bmp", ".tif", ".tiff", ".webp"}
-EDITABLE = {"length", "angle", "fillet", "diameter", "arc_radius", "radius_at"}
+EDITABLE = {"length", "angle", "fillet", "diameter", "arc_radius", "radius_at", "height"}
 
 
 def create_app(work_dir: Path | None = None, config_path: Path | None = None) -> Flask:
@@ -333,7 +333,7 @@ def create_app(work_dir: Path | None = None, config_path: Path | None = None) ->
             threading.Thread(target=_worker, args=(jid, circ_task), daemon=True).start()
             return jsonify(ok=True)
         g = load_graph(d / "graph.json")
-        targets = {"length": "edge", "angle": "vertex", "fillet": "vertex", "diameter": "circle",
+        targets = {"length": "edge", "height": "edge", "angle": "vertex", "fillet": "vertex", "diameter": "circle",
                    "arc_radius": "edge", "radius_at": "vertex"}
         deleted: set[int] = set()
         for row in body.get("rows", []):

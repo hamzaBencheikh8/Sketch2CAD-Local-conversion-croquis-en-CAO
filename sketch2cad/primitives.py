@@ -89,7 +89,10 @@ def _cap(strokes: np.ndarray, xl: float, xr: float, y: float, side: str) -> Opti
     v = -dx * math.sin(t) + dy * math.cos(t)
     r = np.sqrt((u / (a1 / 2 + 1e-9)) ** 2 + (v / (a2 / 2 + 1e-9)) ** 2)
     inliers = float(np.mean(np.abs(r - 1) < 0.12))
-    return {"cx": float(cx), "cy": float(cy), "major": float(major), "minor": float(minor),
+    # part du trait au-delà de l'extrémité des génératrices, côté intérieur : une base du haut
+    # est vue entière (son arc avant passe SOUS le haut des génératrices) ; un dôme non
+    inner = float(np.mean(py > y + 0.03 * D)) if side == "haut" else float(np.mean(py < y - 0.03 * D))
+    return {"inner": inner, "cx": float(cx), "cy": float(cy), "major": float(major), "minor": float(minor),
             "angle": float(ang), "coverage": coverage, "spread": spread, "n": int(px.size), "side": side,
             "inliers": inliers, "axes": [float(a1), float(a2)]}
 
@@ -116,6 +119,8 @@ def detect_cylinder(binary: np.ndarray) -> Optional[dict]:
             ok = all(c["coverage"] >= 0.6 and c["inliers"] >= 0.5 and abs(c["cx"] - xm) < 0.2 * D
                      and 0.75 * D < c["major"] < 1.35 * D and 0.1 * D < c["minor"] < 0.8 * D
                      for c in (top, bot))
+            if top["inner"] < 0.15:
+                ok = False  # sommet en dôme (gélule, ogive) : corps de révolution, pas cylindre
             # les deux bases doivent être distinctes (un cercle seul donne deux « ellipses » superposées)
             if (bot["cy"] - top["cy"]) < 0.5 * (top["minor"] + bot["minor"]):
                 ok = False
