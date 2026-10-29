@@ -1,79 +1,79 @@
 {
   "profile": "offline",
-  "score": "11/15",
-  "date": "2026-10-29 15:40",
+  "score": "15/15",
+  "date": "2026-10-29 15:57",
   "results": {
     "V01_standard.png": {
       "cls": "ok",
       "label": "✓ 1000 × 1000 × 1767.95 mm ; 1 ouverture(s), 2 piquage(s), 4 pied(s)",
       "status": "OK avec avertissements",
-      "seconds": 27.9
+      "seconds": 25.7
     },
     "V02_hemispherique_ep8.png": {
       "cls": "ok",
       "label": "✓ 800 × 800 × 2000 mm ; 0 ouverture(s), 2 piquage(s), 0 pied(s)",
       "status": "OK avec avertissements",
-      "seconds": 17.3
+      "seconds": 16.4
     },
     "V03_grande_3_piquages.png": {
-      "cls": "bad",
-      "label": "✗ forme cylinder ; obtenu 3000 × 3000 × 1500 mm ; 0 ouverture(s), 0 piquage(s), 0 pied(s)",
-      "status": "À VÉRIFIER (voir report.json)",
-      "seconds": 17.7
+      "cls": "ok",
+      "label": "✓ 1500 × 1500 × 2401.92 mm ; 2 ouverture(s), 3 piquage(s), 4 pied(s)",
+      "status": "OK avec avertissements",
+      "seconds": 18.6
     },
     "V04_petite_cote_gauche.png": {
       "cls": "ok",
       "label": "✓ 600 × 600 × 1060.77 mm ; 0 ouverture(s), 1 piquage(s), 4 pied(s)",
       "status": "OK avec avertissements",
-      "seconds": 17.4
+      "seconds": 17.1
     },
     "V05_unites_cm.png": {
       "cls": "ok",
       "label": "✓ 1200 × 1200 × 1921.54 mm ; 1 ouverture(s), 1 piquage(s), 4 pied(s)",
       "status": "OK avec avertissements",
-      "seconds": 18.4
+      "seconds": 17.5
     },
     "V06_unites_m.png": {
       "cls": "ok",
       "label": "✓ 1400 × 1400 × 2575.13 mm ; 2 ouverture(s), 3 piquage(s), 4 pied(s)",
       "status": "OK avec avertissements",
-      "seconds": 18.1
+      "seconds": 17.5
     },
     "V07_deux_rayons.png": {
       "cls": "ok",
       "label": "✓ 1000 × 1000 × 1954.12 mm ; 1 ouverture(s), 1 piquage(s), 0 pied(s)",
       "status": "OK avec avertissements",
-      "seconds": 17.8
+      "seconds": 18.5
     },
     "V08_trapue.png": {
-      "cls": "bad",
-      "label": "✗ forme plate ; obtenu 1545.01 × 1709.31 × 5 mm ; 0 ouverture(s), 0 piquage(s), 0 pied(s)",
-      "status": "À VÉRIFIER (voir report.json)",
-      "seconds": 17.7
+      "cls": "ok",
+      "label": "✓ 1600 × 1600 × 1628.72 mm ; 1 ouverture(s), 2 piquage(s), 4 pied(s)",
+      "status": "OK avec avertissements",
+      "seconds": 18.0
     },
     "V09_elancee.png": {
       "cls": "ok",
       "label": "✓ 500 × 500 × 2633.97 mm ; 1 ouverture(s), 2 piquage(s), 4 pied(s)",
       "status": "OK avec avertissements",
-      "seconds": 17.5
+      "seconds": 17.9
     },
     "V10_complete_ep10.png": {
       "cls": "ok",
       "label": "✓ 1200 × 1200 × 2121.54 mm ; 1 ouverture(s), 3 piquage(s), 4 pied(s)",
       "status": "OK avec avertissements",
-      "seconds": 18.1
+      "seconds": 18.4
     },
     "V11_photo_en_biais.jpg": {
       "cls": "ok",
       "label": "✓ 2000 × 2000 × 2935.9 mm ; 1 ouverture(s), 2 piquage(s), 4 pied(s)",
       "status": "OK avec avertissements",
-      "seconds": 17.2
+      "seconds": 15.0
     },
     "V12_photo_sombre.jpg": {
       "cls": "ok",
       "label": "✓ 900 × 900 × 2200 mm ; 1 ouverture(s), 1 piquage(s), 0 pied(s)",
       "status": "OK avec avertissements",
-      "seconds": 21.6
+      "seconds": 22.5
     },
     "V13_capture_basse_res.png": {
       "cls": "ok",
@@ -82,16 +82,16 @@
       "seconds": 9.7
     },
     "V14_un_seul_stylo.png": {
-      "cls": "bad",
-      "label": "✗ forme cylinder ; obtenu 2600 × 2600 × 1300 mm ; 0 ouverture(s), 0 piquage(s), 0 pied(s)",
-      "status": "À VÉRIFIER (voir report.json)",
-      "seconds": 18.1
+      "cls": "ok",
+      "label": "✓ 1300 × 1300 × 2048.33 mm ; 1 ouverture(s), 1 piquage(s), 4 pied(s)",
+      "status": "OK avec avertissements",
+      "seconds": 18.2
     },
     "V15_feuille_tournee.png": {
-      "cls": "bad",
-      "label": "✗ forme plate ; obtenu 1023.81 × 2028.67 × 5 mm ; 0 ouverture(s), 0 piquage(s), 0 pied(s)",
-      "status": "À VÉRIFIER (voir report.json)",
-      "seconds": 18.1
+      "cls": "ok",
+      "label": "✓ 700 × 700 × 1187.56 mm ; 1 ouverture(s), 1 piquage(s), 4 pied(s)",
+      "status": "OK avec avertissements",
+      "seconds": 18.6
     }
   }
 }

@@ -453,6 +453,33 @@ def test_vessel_detection_finds_body_heads_and_accessories():
     assert abs(v["D_px"] - 420) < 15 and abs(v["H_px"] - 660) < 0.1 * 660
 
 
+def test_vessel_generatrix_end_follows_ink_not_leader_line():
+    """Hough peut prolonger une génératrice jusqu'à une ligne de renvoi (« R1500 ») qui croise
+    son aplomb plus haut : l'extrémité retenue doit être la fin réelle du trait (cas V03 / V14)."""
+    import numpy as np
+    from sketch2cad.vessel import _trace_end
+    st = np.zeros((800, 300), np.uint8)
+    st[300:700, 149:152] = 255             # génératrice x = 150, de y = 300 à 700
+    st[150:156, 140:160] = 255             # ligne de renvoi qui passe à l'aplomb, 150 px plus haut
+    st[420:428, 140:160] = 0               # petite levée de stylo dans le trait : elle est franchie
+    D = 400.0
+    assert abs(_trace_end(st, (0.0, 150.0), 500, 100, D) - 300) <= 1
+    assert abs(_trace_end(st, (0.0, 150.0), 500, 760, D) - 699) <= 1
+
+
+def test_vessel_manhole_near_head_is_not_a_back_arc():
+    """Trou d'homme dessiné tout près du fond bas : ce n'est pas l'arc arrière d'un cylindre (cas V08)."""
+    import cv2
+    from sketch2cad.perception import normalize
+    from sketch2cad.vessel import detect_vessel
+    img = _vessel_sketch()
+    v0 = detect_vessel(normalize(img)[1])
+    D, xm, yb = v0["D_px"], int(v0["x_axis"]), v0["y_bot"]
+    cv2.circle(img, (xm, int(yb - 0.15 * D)), int(0.09 * D), (30, 30, 30), 3)
+    v = detect_vessel(normalize(img)[1])
+    assert v is not None and len(v["openings"]) >= 1
+
+
 def test_vessel_dims_and_cap_geometry():
     from sketch2cad.schema import Dimension
     from sketch2cad.vessel import assign_vessel_dims, cap_depth

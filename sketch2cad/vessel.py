@@ -110,16 +110,43 @@ def head_y(h: dict, x: float, xm: float, up: bool) -> float:
     return h["yc"] - math.sqrt(d2) if up else h["yc"] + math.sqrt(d2)
 
 
-def _has_back_arc(st: np.ndarray, xm: float, D: float, y_join: float, up: bool) -> bool:
+def _has_back_arc(st: np.ndarray, xm: float, D: float, y_join: float, up: bool,
+                  holes: Optional[list[dict]] = None) -> bool:
     """Arc arrière (souvent en pointillés) côté corps = base elliptique vue en perspective,
-    donc cylindre / gélule, pas un fond bombé."""
+    donc cylindre / gélule, pas un fond bombé. Les ouvertures (trou d'homme dessiné près du
+    fond) ne comptent pas."""
     x0, x1 = int(xm - 0.12 * D), int(xm + 0.12 * D)
     if up:
         y0, y1 = int(y_join + 0.02 * D), int(y_join + 0.2 * D)
     else:
         y0, y1 = int(y_join - 0.2 * D), int(y_join - 0.02 * D)
-    band = st[max(0, y0):max(0, y1), max(0, x0):max(0, x1)]
+    y0, y1, x0, x1 = max(0, y0), max(0, y1), max(0, x0), max(0, x1)
+    band = st[y0:y1, x0:x1].copy()
+    if band.size and holes:
+        for o in holes:
+            r = o.get("r_flange") or o["r_bore"]
+            cv2.circle(band, (int(o["cx"] - x0), int(o["cy"] - y0)), int(r + max(4, 0.02 * D)), 0, -1)
     return band.size > 0 and int((band.any(axis=1)).sum()) >= 3
+
+
+def _trace_end(st: np.ndarray, fit: tuple[float, float], y_from: float, y_lim: float, D: float) -> float:
+    """Suit l'encre d'une génératrice (x = a·y + b) depuis y_from jusqu'à sa vraie extrémité.
+    Un trait de rappel ou une ligne de renvoi alignés plus loin ne la prolongent pas."""
+    H, W = st.shape
+    a, b = fit
+    w = int(max(3, 0.01 * D))
+    gap_max = max(6.0, 0.04 * D)
+    step = -1 if y_lim < y_from else 1
+    last = y_from
+    y = int(y_from)
+    while 0 <= y < H and (y - y_lim) * step <= 0:
+        x = int(round(a * y + b))
+        if st[y, max(0, x - w):min(W, x + w + 1)].any():
+            last = y
+        elif abs(y - last) > gap_max:
+            break
+        y += step
+    return float(last)
 
 
 def _openings(st: np.ndarray, xl: float, xr: float, y_top: float, y_bot: float) -> list[dict]:
@@ -238,25 +265,30 @@ def _accessories(st: np.ndarray, xl: float, xr: float, head: dict, up: bool, leg
     return sorted(out, key=lambda n: n["cx"])
 
 
-def _straight(st: np.ndarray, x: float, y0: float, y1: float, D: float) -> bool:
-    """La génératrice est un trait droit sur toute sa hauteur (pas le flanc d'un cercle)."""
+def _straight(st: np.ndarray, x: float, y0: float, y1: float, D: float) -> Optional[tuple[float, float]]:
+    """La génératrice est un trait droit sur toute sa hauteur (pas le flanc d'un cercle).
+    Retourne la droite x = a·y + b, ou None."""
     H, W = st.shape
     win = int(max(4, 0.05 * D))
-    xs = []
+    xs, ys = [], []
     for y in np.linspace(y0 + 0.12 * (y1 - y0), y1 - 0.12 * (y1 - y0), 25).astype(int):
+        if not 0 <= y < H:
+            continue
         row = np.nonzero(st[y, max(0, int(x) - win):min(W, int(x) + win + 1)])[0] + max(0, int(x) - win)
         if row.size:
             # le tronçon de trait le plus proche (une pointe de flèche voisine ne compte pas)
             brk = np.nonzero(np.diff(row) > 1)[0]
             runs = np.split(row, brk + 1)
             xs.append(float(min((r.mean() for r in runs), key=lambda m: abs(m - x))))
+            ys.append(float(y))
     if len(xs) < 20:
-        return False
-    xs = np.array(xs)
-    yy = np.arange(len(xs), dtype=float)
-    a, b = np.polyfit(yy, xs, 1)             # une photo légèrement penchée garde un trait droit
-    res = np.sort(np.abs(xs - (a * yy + b)))
-    return float(res[-3]) <= max(3.0, 0.012 * D)   # deux points aberrants tolérés
+        return None
+    xs, ys = np.array(xs), np.array(ys)
+    a, b = np.polyfit(ys, xs, 1)             # une photo légèrement penchée garde un trait droit
+    res = np.sort(np.abs(xs - (a * ys + b)))
+    if float(res[-3]) > max(3.0, 0.012 * D):   # deux points aberrants tolérés
+        return None
+    return float(a), float(b)
 
 
 def detect_vessel(binary: np.ndarray) -> Optional[dict]:
@@ -281,13 +313,24 @@ def detect_vessel(binary: np.ndarray) -> Optional[dict]:
             # corps cylindrique : une vraie partie droite (un cercle n'a que deux petits flancs verticaux)
             if y_bot - y_top < 0.5 * D:
                 continue
-            if not (_straight(st, L["x"], y_top, y_bot, D) and _straight(st, R["x"], y_top, y_bot, D)):
+            fl = _straight(st, L["x"], max(L["y0"], R["y0"]), min(L["y1"], R["y1"]), D)
+            fr = _straight(st, R["x"], max(L["y0"], R["y0"]), min(L["y1"], R["y1"]), D)
+            if fl is None or fr is None:
+                continue
+            # extrémités réelles des génératrices (Hough peut les prolonger jusqu'à une ligne de renvoi)
+            ym = (max(L["y0"], R["y0"]) + min(L["y1"], R["y1"])) / 2
+            ends = [(_trace_end(st, f, ym, ln["y0"] - 0.05 * D, D), _trace_end(st, f, ym, ln["y1"] + 0.05 * D, D))
+                    for f, ln in ((fl, L), (fr, R))]
+            y_top = (ends[0][0] + ends[1][0]) / 2 if abs(ends[0][0] - ends[1][0]) < 0.08 * D else max(ends[0][0], ends[1][0])
+            y_bot = (ends[0][1] + ends[1][1]) / 2 if abs(ends[0][1] - ends[1][1]) < 0.08 * D else min(ends[0][1], ends[1][1])
+            if y_bot - y_top < 0.5 * D:
                 continue
             top = _head(st, L["x"], R["x"], y_top, True)
             bot = _head(st, L["x"], R["x"], y_bot, False)
             if top is None or bot is None:
                 continue
-            if _has_back_arc(st, xm, D, y_top, True) or _has_back_arc(st, xm, D, y_bot, False):
+            holes = _openings(st, L["x"], R["x"], y_top, y_bot)
+            if _has_back_arc(st, xm, D, y_top, True, holes) or _has_back_arc(st, xm, D, y_bot, False, holes):
                 continue
             score = min(L["len"], R["len"]) + 0.5 * D
             if best is None or score > best["score"]:
